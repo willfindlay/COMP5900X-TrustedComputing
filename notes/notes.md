@@ -17,10 +17,10 @@
     computing into everyday devices
 
 * __Two new system characteristics:__
-  (a) High confidence in state of the local system
+  1. High confidence in state of the local system
     * Configuration, running software, etc.
     * Local attestation?
-  (b) High confidence in the state of a remote system
+  2. High confidence in the state of a remote system
     * Remote attestation
 
 * Knowing state is __not enough for establishing trust__, but provides a nice
@@ -54,16 +54,16 @@
   * Use trusted components to build secure systems
 
 * Distinguish the following:
-  (a) trusted systems (systems that we trust)
-  (b) trustworthy systems (systems that deserve our trust)
-  (c) trustable systems (systems that can be trusted)
+  1. trusted systems (systems that we trust)
+  2. trustworthy systems (systems that deserve our trust)
+  3. trustable systems (systems that can be trusted)
 
 * Trusted Computing is probably better defined as Trustable Computing
 
 * Proudler's criteria for system trustworthiness:
-  (a) unambiguously identifiable
-  (b) unhindered operation
-  (c) user has first-hand experience of consistent, good behaviour or trusts
+  1. unambiguously identifiable
+  2. unhindered operation
+  3. user has first-hand experience of consistent, good behaviour or trusts
      someone else who attests to this
 
 * How to build an expectation of good behaviour?
@@ -72,9 +72,9 @@
   * Modern systems are too complex to be totally formally verifiable
 
 * Surrogates for proofs:
-  (a) Testing
-  (b) Long-term use experience
-  (c) Third-party evaluation, certification, etc.
+  1. Testing
+  2. Long-term use experience
+  3. Third-party evaluation, certification, etc.
 
 * TCG's definition (not the best):
   * "An entity can be trusted if it always behaves in the expected manner for
