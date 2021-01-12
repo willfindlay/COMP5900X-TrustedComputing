@@ -277,6 +277,16 @@ __Remote Attestation and Privacy__
 * Another protocol, DAA (Direct Anonymous Attestation) can be used instead, with
   even stronger privacy requirements
 
+### Mobile Phone
+
+### Virtualized Platforms
+
+### Impact of Trusted Computing
+
+### State of the Art
+
+### Active Research
+
 ## Hardware-Based Trusted Computing Architectures for Isolation and Attestation
 
 
