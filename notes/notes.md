@@ -34,10 +34,10 @@
   * An asymmetric, private key, stored in the RTR
   * Represents a unique platform identity
 
-* Static RTM
+* Static RTM (SRTM)
   * TODO
 
-* Dynamic RTM
+* Dynamic RTM (DRTM)
   * TODO
 
 * Measured Launched Environment
@@ -50,6 +50,25 @@
   * TODO
 
 * Direct Anonymous Attestation (DAAs)
+  * TODO
+
+* Mobile Trusted Module (MTM)
+  * TODO
+  * Remote Owner MTM (MTRM)
+    * TODO
+  * Local Owner MTM (MTLM)
+    * TODO
+
+* Secure Boot
+  * TODO
+
+* Reference Integrity Metrics (RIMs)
+  * TODO
+
+* Root Trust for Verification (RTV)
+  * TODO
+
+* Root Trust for Enforcement (RTE)
   * TODO
 
 # Week 1 Notes
@@ -280,6 +299,21 @@ __Remote Attestation and Privacy__
 ### Mobile Phone
 
 ### Virtualized Platforms
+
+* Use dynamic RTM to launch a measured VMM (Virtual Machine Monitor)
+* Then measure the virtual machine itself before instantiating it
+* This dramatically shortens the chain of trust for a given virtual machine
+
+* We run into issues here when we expect a mutating persistent state for a given VM
+  * But for applications where the VM is expected to launch in the same state or
+    when it is only launched once, this is a good approach
+
+* TPM can also protect the VM from the host OS
+  * Assert that VMM can only start, stop and allocate resources for VMs
+  * Then the VM itself is protected from a malicious or semi-honest host OS
+* This approach can result in additional complexity
+  * Virtual TPM must be bound in some way to a physical TPM
+  * Virtual machines might also be expected to migrate between hosts
 
 ### Impact of Trusted Computing
 
