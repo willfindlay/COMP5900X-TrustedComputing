@@ -8,6 +8,7 @@
 * Trusted Platform Module (TPM)
   * Hardware/Software module used to provide root of trust guarantees by integrating
     with the system architecture (via a physically embedded TPM chip)
+  * There are also pure software TPM implementations, with some weaker or missing guarantees
 
 * Measurement
   * Cryptographic hashing of system software/firmware components
@@ -32,6 +33,24 @@
 * Endorsement Key (EK)
   * An asymmetric, private key, stored in the RTR
   * Represents a unique platform identity
+
+* Static RTM
+  * TODO
+
+* Dynamic RTM
+  * TODO
+
+* Measured Launched Environment
+  * TODO
+
+* Platform Configuration Registers (PCRs)
+  * TODO
+
+* Attestation Identity Keys (AIKs)
+  * TODO
+
+* Direct Anonymous Attestation (DAAs)
+  * TODO
 
 # Week 1 Notes
 
@@ -174,6 +193,89 @@ __Trusted Platform Module (TPM)__
 * The public EK should be signed into a certificate by the manufacturer
 * The public part of the SRK is established when a new user takes ownership of the machine
   * May be re-initialized when the platform passes to a new owner
+
+__Building a Chain of Trust from Roots of Trust__
+
+* One approach is authenticated (measured) boot process:
+  1. At power on, RTM records its own identity (measurement of its own code, or an identifier)
+  2. Before each part of the boot process:
+    1. RTM takes a measurement of the next component to execute, passes control to the component
+    1. Repeat for every component in the boot processes
+
+* This is called a __static RTM__... Used traditionally, not so great for many reasons
+  * Large number of components in the boot chain
+  * Components are subject to frequent change (patches, firmware updates)
+  * Components might be executed in different order
+  * Performance penalty in the early boot process
+
+* Another approach is a __dynamic RTM__:
+  * Also known as a late launch of the measured environment
+  * A special CPU instruction invokes a major change in platform state
+  * This loads a fixed piece of code from a trusted source, stored in a safe place
+  * This code then measures and nominates a white-listed piece of software
+  * Platform jumps directly into a trusted state (measured launched environment)
+
+* The fixed piece of code is stored in the TPM's "Platform Configuration Registers"
+  * Special shielded locations
+  * Can be directly read, but no arbitrary writes
+  * Expose one write operation, called "Extend"
+  * Extend updates a PCR with a hash of input value + previous hash of the PCR
+
+* A particular PCR can be placed into a given state only by a specific sequence
+  of extend operations. We want to arrive at a known good value for that PCR
+
+* Just PCR + "Extend" is not enough. We need to protect against spoofing attacks by rogue drivers.
+  * "TPM Quote"  operation returns a signed copy of nominated PCR's protected by
+    a challenge-response nonce
+  * TPM can use asymmetric crypto to "seal" a value and only mark it for
+    decryption when PCRs have reached a given state
+
+* Both of the above mechanisms rely on protected storage established using the
+  master key in the RTS
+
+__Management of TPM Keys__
+
+* Keys can be migrated between TPMs using protect protocols
+  * Required for group work, passing privilege, maintenance, upgrade, etc.
+
+* Some keys can be marked as prohibited from migration or can only be migrated
+  under certain conditions such as a special backup procedure
+
+* TPM implements strong key generation capabilities, based on a true random
+  number generator
+
+* TPM also includes monotonic counters which can substitute for a real-time clock
+  for challenge-response and signature generation
+
+__Remote Attestation and Privacy__
+
+* Remote attestation is based on the RTE (stores a uniquely-identifying private
+  key for attestation, the EK)
+
+* Credentials (e.g. certificates) associated with the EK are proof for third
+  parties to identify our platform
+  * In pure software implementations, these credentials may be missing or offer
+    weaker guarantees
+  * Note: No central authority here, up to the communicating party to decide
+    which credentials are appropriate
+
+* Important note on privacy: The EK can't simply be used to sign each PCR Quote
+  operation, or it would be trivial to track all remote interactions from
+  a given platform
+
+* Instead, TPM provisions for the creation of any number of "Attestation Identity Keys"
+  * These keys are then used as signature keys
+  * EK is not allowed to be used directly as a signature key
+
+* To generate AIKs:
+  1. Generates a key pair
+  2. Runs a protocol with a privacy CA, demonstrating its identity using the EK
+  3. The TPM then obtains an AIK certificate, which binds a key to a trusted
+     platform, but does not reveal which trusted platform
+  4. Fresh AIKs can be generated as often as required
+
+* Another protocol, DAA (Direct Anonymous Attestation) can be used instead, with
+  even stronger privacy requirements
 
 ## Hardware-Based Trusted Computing Architectures for Isolation and Attestation
 
