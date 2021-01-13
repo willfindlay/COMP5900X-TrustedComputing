@@ -335,6 +335,31 @@ __Remote Attestation and Privacy__
 
 ### Attacker Model
 
+* Attacker is in control of all software, excluding software in the TCB
+  * AFAIK, the TCB here is _not_ the same TCB as we consider in OS security
+  * Rather, the TCB is in the context of the secure enclave itself
+  * (In addition to some external forces, like other devices connected to the shared LPC bus in TPM)
+
+* Attacker is in control of the communication channel to the device
+  * Snooping, modifying traffic
+  * Man in the middle attacks
+  * This is important for attestation (we need to provide
+    spoofing/tampering/replay resistance, e.g. with a nonce or timer)
+
+* Dolev-Yao attacker model
+  * Attacker _cannot_ break crypto primitives
+  * Attacker _can_ perform protocol-level attacks
+  * E.g. an attacker can't defeat the security assumptions of an HMAC but they
+    can attack it if it is _used incorrectly in a protocol_
+
+* We ignore DoS attacks (because our PMAs cannot provide availability guarantees)
+
+* Any PMA without memory protection considers physical attacks out of scope
+  * But those with memory protection should defend against such attacks
+
+* As with physical attacks, software side channel attacks may or may not be addressed
+  * E.g. an attacker can leak information by monitoring memory or cache access patterns of an enclave
+
 ### Security Properties of PMAs
 
 __P1. Isolation__
@@ -379,9 +404,7 @@ __Bastion__
 
 __SMART__
 
-__Sancus__
-
-TODO: Resume reading on Sancus
+__Sancus and Soteria__
 
 __SecureBlue++__
 
