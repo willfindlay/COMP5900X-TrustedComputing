@@ -364,11 +364,57 @@ __Remote Attestation and Privacy__
 
 __P1. Isolation__
 
+* Hardware-based mechanism
+* Provides access control for software and its associated data
+
+* Placing code and data into a protected module -> no other software can
+  read/write its runtime state or modify its code
+  * This includes the OS running in ring 0
+
+* Execution of isolated code can only happen from a single pre-defined entrypoint
+  * Otherwise execution of the memory region is turned off
+  * This defeats attacks like ROP and other CFI-related attacks
+
+* Protected modules store secret data as well such as secret keys
+  * Other software can't access the PM's state, so these secrets are protected
+  * Writes are also prevented from outside the PM, so integrity is preserved
+
 __P2. Attestation__
+
+* Use measurement to assert state of a given entity
+  * This measurement can happen during initialization for example
+  * Building a chain of trust from boot or dynamically at runtime
+
+* Attestation guarantees should be a superset of integrity guarantees
+  * i.e. the integrity of the underlying state must also be guaranteed
 
 __P3. Sealing__
 
+* Wrap confidential code such that it can only be unwrapped under certain circumstances
+  * e.g. once an entity has entered into a specific measured state
+
+* Sealed entities can be bound to:
+  * Configuration
+  * Software state
+  * Specific device
+  * Some combination of these
+
+* Sealing is usually based on encryption with a key derived from the measurement
+  taken during attestation
+
 __P4. Dynamic Roots of Trust__
+
+* Trust chains need to be anchored at a root of trust
+
+* Static RoT can result in long chains and be difficult to implement in practice due to
+  variations in execution order, other runtime parameters, and prohibitive runtime cost
+
+* Dynamic RoT helps by measuring a trusted module right before it starts execution
+  * This reduces the length of the chain of trust
+
+* Need to protect against TOCTOU vulnerabilities, so this is typically combined
+  with isolation (to prevent an attacker from changing module code after it has
+  been measured)
 
 __P5. Code Confidentiality__
 
