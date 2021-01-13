@@ -6,13 +6,21 @@
   * If the TCB is compromised, the system is totally compromised
 
 * Trusted Platform Module (TPM)
-  * Hardware/Software module used to provide root of trust guarantees by integrating
-    with the system architecture (via a physically embedded TPM chip)
+  * An open standard for a Hardware/Software module used to provide root of
+    trust guarantees by integrating with the system architecture (via a physically embedded TPM chip)
   * There are also pure software TPM implementations, with some weaker or missing guarantees
 
 * Measurement
   * Cryptographic hashing of system software/firmware components
   * Verify component state, integrity
+
+* Protected Module Architectures (PMAs)
+  * Separate security-critical components into smaller protected modules
+  * Since they are separated, they are much simpler and correctness proofs/verification are easier
+  * Modules are isolated from the rest of the system to improve tamper-resistance
+
+* Trust Chains
+  * TODO
 
 * Root of Trust for Measurement (RTM)
   * Root of trust, basis for first measurement
@@ -155,9 +163,9 @@ Supplementary Material:
   2. Long-term use experience
   3. Third-party evaluation, certification, etc.
 
-* TCG's definition (not the best):
+* TCG's definition:
   * "An entity can be trusted if it always behaves in the expected manner for
-    the intended purpose"
+    the intended purpose."
 
 ### Trusted Computing Platforms
 
@@ -321,6 +329,68 @@ __Remote Attestation and Privacy__
 
 ### Active Research
 
+
 ## Hardware-Based Trusted Computing Architectures for Isolation and Attestation
 
 
+### Attacker Model
+
+### Security Properties of PMAs
+
+__P1. Isolation__
+
+__P2. Attestation__
+
+__P3. Sealing__
+
+__P4. Dynamic Roots of Trust__
+
+__P5. Code Confidentiality__
+
+__P6. Side-Channel Resistance__
+
+__P7. Memory Protection__
+
+### Architectural Features of PMAs
+
+__F1. Lightweight__
+
+__F2. Coprocessor__
+
+__F3. HW-Only TCB__
+
+__F4. Preemption__
+
+__F5. Dynamic Layout__
+
+__F6. Upgradeable TCB__
+
+__F7. Backwards Compatibility__
+
+### Architectures
+
+__AEGIS__
+
+__TPM and TXT__
+
+__TrustZone__
+
+__Bastion__
+
+__SMART__
+
+__Sancus__
+
+TODO: Resume reading on Sancus
+
+__SecureBlue++__
+
+__Intel SGX__
+
+__Iso-X__
+
+__TrustLite__
+
+__TyTan__
+
+__Sanctum__
