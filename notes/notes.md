@@ -49,10 +49,14 @@
   * TODO
 
 * Measured Launched Environment
-  * TODO
+  * An environment that has been measured during its initialization
+  * Relies upon the RTM to bootstrap trust in the measurement
 
 * Platform Configuration Registers (PCRs)
-  * TODO
+  * Used in TPM to store the evolving state of an entity
+  * PCRs are world-readable but only expose one update operation
+  * Update operation, called "Extend" updates the PCR using a combination of the
+    hash of its prior state and the hash of the input
 
 * Attestation Identity Keys (AIKs)
   * TODO
