@@ -257,7 +257,7 @@ __Building a Chain of Trust from Roots of Trust__
 
 * Just PCR + "Extend" is not enough. We need to protect against spoofing attacks by rogue drivers.
   * "TPM Quote"  operation returns a signed copy of nominated PCR's protected by
-    a challenge-response nonce
+    a challenge-response nonce -> Quotes are used for remote attestation
   * TPM can use asymmetric crypto to "seal" a value and only mark it for
     decryption when PCRs have reached a given state
 
@@ -467,3 +467,135 @@ __TrustLite__
 __TyTan__
 
 __Sanctum__
+
+
+
+## Lecture 1
+
+* Something he repeated several times, may be important:
+  * Secure boot is not part of trusted computing
+
+### Course Overview
+
+* Trusted computing is not that new
+  * But it's not so well-known compared to other security domains
+
+* Hardware is evolving -> results in new factors which were not taken into
+  account in the original paradigm
+
+* We'll also cover new attack vectors / factors to be considered in this area,
+  so we can stay up to date
+
+* We'll be examining the execution of a computer program
+
+* This course is _not_ dedicated to computer security in general -- we are
+  focusing specifically on execution security
+
+### Grading Scheme in Detail
+
+* In class test
+  * Open-book
+  * Basic concepts + understanding of trusted computing
+  * Multiple choice + short answer + true or false (CuLearn)
+
+* Assignment
+  * A survey paper
+  * Just a few pages
+
+* Paper discussion
+  * Carefully read and understand selected paper
+  * Make a few slides, lasting for at least 30 minutes
+  * Explain what the paper is about + your own opinions e.g. strengths and
+    drawbacks (Very Important)
+
+* Project
+  * Roughly double the number of pages compared to the assignment
+  * Research-paper-like writeup
+
+* Participation
+
+### Questions to Answer
+
+1. What is trust?
+2. What is a program in execution faced with?
+  * What attack vectors?
+3. What are the advantages of hardware support?
+4. Where is hardware security support still failing?
+5. How can we improve trusted computing?
+
+### Trusted Computing vs Endpoint Security
+
+* Scope to protect
+
+* Assumptions
+  * E.g. AV tool assumes userland adversary
+
+* How can we bootstrap trust?
+
+### Why Hardware?
+
+* Stronger threat model assumptions
+  * Immutability
+  * Changing requires physical access
+  * Controls everything
+
+### x86 Stuff
+
+* Userland is ring 3, OS is ring 0
+  * We say the hypervisor is ring -1, but really it's also ring 0
+
+* SMM -> system management mode
+  * We consider this ring -2
+
+* ME -> management engine
+  * We consider this ring -3
+
+* Microcode has omniscient view of the system
+
+### Trusted Execution Environment
+
+* Coined by GlobalPlatform
+
+* Properties
+  * Hardware support
+  * Isolation
+  * Measured launch
+  * Secure storage
+  * Attestation
+
+### TCB
+
+* TCB is the set of hardware/software that is critical to security goals,
+  designated as trusted, and always assumed so
+
+* Three properties:
+  * TCB compromise must lead to security failure
+  * May or may not participate in achieving the security goals
+  * Non-TCB compromise must not harm security goals
+
+* This set should be minimal
+  * Maintainable
+  * Auditable/verifiable
+
+### Static vs Dynamic RTM
+
+* Chain of trust from boot is static
+
+* Dynamic means you can reset RoT at any time (late launch)
+  * e.g. in TXT you call the TXT enter instruction
+
+* SRTM PCR values start at -1
+* In TXT, this gets reset to 0
+* So we can always tell if we are basing our trust on SRTM or DRTM
+
+### Revisiting What TEEs Provide
+
+* Isolation
+* Measured launch
+* Secure storage
+* Sealing
+* Attestation
+
+
+
+# Week 2
