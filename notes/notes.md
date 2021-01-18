@@ -599,3 +599,48 @@ __Sanctum__
 
 
 # Week 2
+
+## SafeKeeper: Protecting Web Passwords Using Trusted Execution Environments
+
+Two components:
+
+* Server-side
+  * CMAC taken over passwords, backed by keys secured in a TEE
+  * Computation of CMAC also occurs in the TEE itself
+  * Rate-limiting to defeat guessing attacks
+* Client-side
+  * Browser extension acts as a remote verifier
+  * Signals to the user when the backend server is using SafeKeeper
+  * Establishes a secure connected with the backend server
+
+* Key difference from existing methods:
+  * We _don't_ need to identify the remote server
+  * We only need to be assured that the _correct software configuration_ (e.g.
+    Running a good version of SafeKeeper) is available on the remote server
+
+### Storing Passwords
+
+* SafeKeeper uses CMAC (cipher-based MAC) to add an extra layer of protection to
+  password storage
+
+* Without the key, attacker's can't really verify password guesses offline if
+  they steal the database
+
+* The key is protected in hardware, so really the attacker is out of options
+
+### Intel SGX
+
+* Software enters an enclave using a special CPU instruction
+  * The enclave code goes through a measured launch, measuring code and configuration
+  * Measured value is stored as `MRENCLAVE`
+
+* Enclave data is stored primarily in an enclave page cache, only accessible to enclave code
+  * When data is paged into DRAM, it is encrypted with a key known only to the CPU
+
+* Data can be sealed via encryption such that it is only accessible from
+  enclaves on the same CPU with the same `MRENCLAVE` measured launch value
+
+* Quote operations allow the enclave to produce an `MRENCLAVE` value signed with
+  its public key
+  * Verifier can validate this quote using Intel Attestation Service (IAS)
+  * Then they can establish an encrypted channel directly to the enclave
