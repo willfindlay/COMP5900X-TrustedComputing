@@ -651,11 +651,16 @@ Two components:
 
 ### Related Work
 
-__SGX Enclaves vs Offline Guessing__
+__How SGX Enclave-Based Solutions Deal with Offline Guessing__
 
 * Most proposals either encrypt or take an HMAC
   * But they all assume a trusted server
   * No consideration for password confidentiality in software (outside of the enclave)
+
+* SafeKeeper is different because it uses a CMAC calculated in the TEE
+  * Neither the key nor any information about the key ever leaves the TEE
+  * Establishing a secure connection directly to the enclave basically makes the
+    rest of the system completely unaware of the actual password
 
 ## Bootstrapping Trust in Commodity Computers
 
