@@ -628,6 +628,10 @@ Two components:
 
 * The key is protected in hardware, so really the attacker is out of options
 
+* Need to defend against online guessing attacks as well
+  * Even online attacks mounted from the server side
+  * Therefore, enforce rate limiting for a given password within the TEE itself
+
 ### Intel SGX
 
 * Software enters an enclave using a special CPU instruction
@@ -644,3 +648,160 @@ Two components:
   its public key
   * Verifier can validate this quote using Intel Attestation Service (IAS)
   * Then they can establish an encrypted channel directly to the enclave
+
+### Related Work
+
+__SGX Enclaves vs Offline Guessing__
+
+* Most proposals either encrypt or take an HMAC
+  * But they all assume a trusted server
+  * No consideration for password confidentiality in software (outside of the enclave)
+
+## Bootstrapping Trust in Commodity Computers
+
+* Not looking at trusted computing specifically
+
+* Rather, considering the older area of bootstrapping trust
+  * Trusted computing could be considered a newer subset of this area
+
+Some important issues:
+
+* Foundation of trust
+* Usability issues w.r.t. conveying computer state to humans
+
+### Secure Boot
+
+* Measure each step in the boot process
+  * Abort the boot if we observe an incorrect measurement
+
+* Authorization requires a signature from a public trust authority
+  * The authority's public key would be embedded in firmware
+
+* The user can verify that their system booted securely merely by checking
+  whether boot was successful
+
+* The remote party can only verify that the computer has been booted into an
+  authorized state
+  * It cannot learn precise details about that state
+
+### Storage Access Control via Code Identity
+
+* Use case: long-term protection of secrets
+
+* IBM 4758 uses software privilege layers to store data
+  * Higher levels cannot access lower levels
+  * Physical tampering with the device results in erasure of secrets (presumably
+    by discarding an encryption key?)
+
+* TPMs use:
+  * Sealing produces a ciphertext that includes PCR state, takes place __on the TPM__
+  * Binding produces a ciphertext that does not include PCR state, takes place __outside the TPM__
+  * Sealing can be used to verify integrity, binding cannot
+  * But both require the correct PCR state in order for decryption to occur
+
+* To prevent replay attacks (on sealed/bound ciphertext), TPM includes
+  a monotonic counter, but application developers must take care to use this
+  counter properly
+
+### Remote Attestation
+
+* Secure boot model does not capture enough information to inform a remote party
+  * TODO: Is this why Viau doesn't consider it a trust trusted computing technology?
+
+* Full co-processors can store historical configuration changes, wiping secrets
+  only when an epoch changes
+  * TODO: Figure out what the actual difference is when deciding whether an
+    update is a configuration change or an epoch change
+
+* TPMs only rely on measurements during the current boot cycle (no information
+  from previous boot cycles is preserved)
+  * Less flexible
+
+* How TPM attestation works:
+  * TPM generates an AIK key pair, with the public portion known to the verifier (e.g. Intel servers)
+  * Verifier supplies a nonce to the attestor (prevent replay attacks)
+  * Ask the TPM to generate a Quote (digital signature covering the nonce, PCR state)
+  * Attestor sends the quote + the PCR state to the verifier
+  * Verifier checks the signature against its nonce and the list of known-good PCR states
+
+### Reboot Attacks (AKA Reset Attacks)
+
+* Basically a TOCTOU attack
+* Physically co-located adversary waits until the verifier receives an
+  attestation, then reboots the machine into a malicious software image
+
+* Mitigating this attack requires binding ephemeral keys to currently executing software
+  * Rebooting destroys the trusted communication tunnel, preventing the attack
+
+### How to Link Code Identity to Secure Channels
+
+* Include a measurement of the public key in an extend operation
+  * Now the public key is also reflected in the TPM's PCRs
+
+### Privacy Concerns
+
+* Binding a unique identity to a piece of hardware results in privacy concerns
+  * User does not want to be uniquely identifiable by any third party
+
+#### Identity CAs
+
+* TPM generates an AIK associated with a pseudonym
+* Then a trusted third party (Privacy CA) verifies the correctness of the
+  user's hardware using the public part of an EK (stored in the TPM's
+  hardware) and issues a trust certificate corresponding with the pseudonym
+
+#### Direct Anonymous Attestation (DAA)
+
+* DAA is completely decentralized (unlike privacy CAs)
+  * Uses a group signature scheme
+  * But with no privileged group manager (anonymity can never be revoked)
+
+* An adversary's credentials can be invalidated without ever learning the
+  adversary's identity
+
+* Use zero-knowledge proofs to interact with the verifier
+
+### Knowing Platform State vs Trust
+
+* Just because you know platform state doesn't mean you can trust it
+* Systems are complex  and unverifiable
+  * There could be lots of buggy software in a given configuration
+
+* OS and application code changes rapidly over time, meaning:
+  1. we need to constantly update expected measurements and;
+  2. we have no guarantees that updates don't introduce new vulnerabilities
+
+* "State-space explosion"
+
+#### Techniques to Solve This
+
+1. Privilege layering
+  * Record the launch of a long-term core (e.g. and SELinux kernel)
+  * Bind secrets to the long-term core
+  * Now verify that the enforcer is configured with the correct policy
+2. Virtualization
+  * Virtualize workloads using virtual machines
+  * Measure the VMM which launches the VMs
+3. Late Launch
+  * Start measurement at a later point, for example at the point when a VM is launched
+  * A special instruction can reset platform state before measurement
+  * This greatly shortens the chain of trust, focuses on more security-relevant code
+4. Code Constraints
+  * Enforce CFI using inline reference monitors (can be dynamically injected into code)
+  * Then measure the integrity of that code
+  * We now only need to verify that the inline reference monitors are correct
+5. Outsourcing
+  * Outsource the problem of interpreting code to a trusted third party
+  * E.g. obtain certificates from software providers
+  * Include certificates with attestation
+
+### Roots of Trust
+
+* Typical basis for root of trust:
+  * Private key stored securely in hardware
+  * Trusted third-party is in possession of the public component
+
+### Cuckoo Attack
+
+* When malware on a trusted platform forwards the attestation request to another
+  attacker-controlled platform, which "confirms" the request
