@@ -351,8 +351,11 @@ __Remote Attestation and Privacy__
     spoofing/tampering/replay resistance, e.g. with a nonce or timer)
 
 * Dolev-Yao attacker model
+  * Network of nodes
   * Attacker _cannot_ break crypto primitives
   * Attacker _can_ perform protocol-level attacks
+  * Attacker can eavesdrop, intercept, and synthesize network traffic
+  * Attacker is computationally bounded, with no access to individual nodes
   * E.g. an attacker can't defeat the security assumptions of an HMAC but they
     can attack it if it is _used incorrectly in a protocol_
 
@@ -810,3 +813,266 @@ Some important issues:
 
 * When malware on a trusted platform forwards the attestation request to another
   attacker-controlled platform, which "confirms" the request
+
+## Lecture on Discussion Leads / Paper Reading / SafeKeeper
+
+### Assignment
+
+* At least four pages (Individual Work)
+* 3 to 8 academic papers to write a survey about
+* Topics must be closely related to trusted/secure computing
+  * Applications
+  * Improvements
+  * Academic Proposals
+  * Attacks (A bit tricky, make sure that they do fall into one category; the way you survey attack papers is different -- look other aspects besides defence)
+* Systematic comparison, analysis, or reasoning
+  * This is the purpose, why we need to examine these works
+  * Go through each paper briefly, perform an analysis
+  * How they achieve their claimed purpose, what can be improved, is there anything interesting
+* For full marks, provide some insights
+  * Novel opinions, not mentioned or known in the community
+* Due Feb. 23 (after Winter break)
+
+__Format__
+
+* At least 4 pages in length
+* Single-spaced, single-column, 10-point, margins <= 1 inch
+* Title, name, student number
+
+__Plagiarism__
+
+* Copy-and-paste is strictly prohibited
+  * This includes figures
+* Read/understand first then write own text
+
+### Preprocessing a Paper
+
+* Title, Venue, and Authors
+* Type of paper:
+  * New system/method
+  * Attack paper
+  * Survey/SoK -> (SoK is more in-depth, more focus on evaluation/opinions)
+  * Position paper
+* Paper structure:
+  * Abstract
+  * Threat model / preliminaries
+  * Design
+  * Implementation
+  * Evaluation
+  * Related work
+
+### Goals
+
+* Problem statement
+* Claims/Contributions
+* Mentioned in Introduction/Abstract or a separate section
+
+* For SafeKeeper
+  * To protect the secrecy of web passwords
+  * Protect against phishing, password database theft, including rogue servers
+  * Does not require users to correctly identify the server
+
+### Threat Model
+
+* Trusted
+
+* Not Trusted
+  * Malicious
+  * Honest But Curious
+
+* Assumptions
+
+### Well-Motivated?
+
+* Why is this proposal needed?
+* Related Work
+* What can go wrong without it?
+* What can go better with it?
+
+### Design/Implementation
+
+### Evaluation/Validation
+
+* Effectiveness
+  * Security analysis (reasoning, couple with scope of the paper, threat model)
+
+* Efficiency
+  * Overhead compared to base operation of the system
+  * Micro- and macro-benchmarking
+
+* User Study (if applicable)
+  * Is a user study needed? (Are human factors involved?)
+  * Ethical approval
+
+### Attacks? / Improvements?
+
+* Open discussion
+* What did the paper do well, and what did it not do so well
+* Are there glaring issues with the paper? With the artifact?
+
+### Other Aspects
+
+* Adoptability/How easy it is to migrate
+
+## Lecture on Discussion of Trust / Important Concepts
+
+* When we talk about trust, we may not be talking about the same thing
+  * At least __properly define what trust means__
+
+* Viau: Use _trustworthy_ instead of _trusted_ in some cases
+  * Instead of "trusted" computing, we really mean "trustworthy" computing
+
+* Trusted means in practice:
+  * An entity can be trusted if it always behaves in the expected manner for the
+    intended purpose
+  * Orthogonal to "secure"
+
+* Trusted can also imply:
+  * Having to be trusted (no other choice)
+  * Exempted from further checking
+
+* Trustworthy means:
+  * Something is _deserving_ of our trust
+
+### Building Blocks for Trustworthiness
+
+* Abstraction
+  * Lower-layer advantage
+  * Virtualization, OS processes, containerization, interpreted languages
+
+```
+------   ------
+|    |   |    |   Lower priv
+------   ------
+---------------
+|             |   Higher priv
+---------------
+```
+
+* Principle when developing a security solution targeting some layer:
+  * Go one level down
+
+* Privilege (Access Control)
+  * Some other party is enforcing this (not intrinsic like abstractions)
+  * Designated level of access
+  * E.g. segmentation and x86 protection rings
+  * Page table access (MMU)
+
+### Privilege
+
+* Unlike SMM, Intel ME has a dedicated processor, RAM, and I/O
+* Enables Intel AMT -> Remote management, runs a full-fledged OS as long as PSU is on (possible MINIX)
+* Kind of a double edge sword
+  * New security threats
+
+* One more thing on x86
+  * ME -> management engine, fully closed
+  * IE -> innovation engine, third-party applications
+
+* Application Processor (AP) vs Base Band Processor (BBP)
+  * Application code runs in AP
+  * Base band is comparable to Intel ME
+
+* Categorization of primitives:
+  * Where does the code run
+  * Where is the main memory
+  * Code storage (LTS), where does it load code from
+
+### Trusting the OS Leads to a Weak Model
+
+* Bloated TCB
+  * All kernel code
+  * Lots of userspace code
+  * Anything running as root, SUID
+
+* What about the compiler?
+
+* What about the web browser?
+
+### Attack Vectors
+
+* A method or pathway through which something can be attacked
+
+* Specific to an attack goal
+
+* How/where can Trusted Computing tech fail?
+
+### Attack Vectors
+
+* Refer to theme figure for this course
+
+* Vector examples:
+  * Initial integrity compromise -> Measured launch
+  * Memory corruption attacks
+  * Rollback attacks
+  * Insecure I/O
+  * Side channels
+
+### Direct Manipulation
+
+* We should exclude this from our threat model in TC
+
+* Inadequate abstraction
+
+* Design flaw vs implementation error
+
+### Initial Integrity
+
+* Trusted source
+  * Hardware (trusted vendor, assumptions?)
+  * Software
+
+* Proper loading
+  * Measured launch
+
+### Side Channels
+
+* Timing
+
+* Electromagnetic
+
+* Power analysis
+
+* Acoustic
+
+* __Micro-architectural__
+
+### Covert Channels vs Side Channels
+
+* Side channel means leaking information
+* Covert channels means two cooperating parties
+  * Establish a covert channel for communication
+* Something needs to be introduced by an attacker
+
+### Micro-Architectural Side Channels
+
+* ISA -> Instruction Set Architecture
+  * x86, x64, ARM (thumb, regular, etc.), RISC-V
+
+* But what is a _micro_ architecture
+  * Specific implementation of an architecture
+  * Architecture doesn't specify _everything_: specific implementations may vary a lot
+
+* The side channels here:
+  * Because the specification does not specify enough, vendors have the freedom to improveise
+  * That part is not properly abstracted away, we can exploit it
+  * E.g. cache timing side channel attacks (miss vs hit differs in latency)
+
+* So micro-architectural is sub-architecture
+
+## Notes for me:
+
+Things to look up:
+
+* SMM in more detail
+* Intel ME in more detail
+* Intel AMT in more detail
+
+# Week 3
+
+* https://www.usenix.org/system/files/conference/osdi16/osdi16-arnautov.pdf
+  * Resume reading at section 2.2 on page 4
+
+* https://www.usenix.org/system/files/conference/atc17/atc17-tsai.pdf
+
+* https://dl-acm-org.proxy.library.carleton.ca/doi/pdf/10.1145/2660267.2660350
