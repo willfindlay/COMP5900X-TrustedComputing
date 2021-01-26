@@ -1,0 +1,3 @@
+[submodule "project/5900X-Project"]
+	path = project
+	url = git@github.com:willfindlay/5900X-Project.git

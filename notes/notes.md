@@ -1071,7 +1071,6 @@ Things to look up:
 # Week 3
 
 * https://www.usenix.org/system/files/conference/osdi16/osdi16-arnautov.pdf
-  * Resume reading at section 2.2 on page 4
 
 * https://www.usenix.org/system/files/conference/atc17/atc17-tsai.pdf
 
