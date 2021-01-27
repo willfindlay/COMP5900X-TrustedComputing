@@ -1075,3 +1075,4 @@ Things to look up:
 * https://www.usenix.org/system/files/conference/atc17/atc17-tsai.pdf
 
 * https://dl-acm-org.proxy.library.carleton.ca/doi/pdf/10.1145/2660267.2660350
+  * Resume reading second column on page 7
