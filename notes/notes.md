@@ -1075,4 +1075,237 @@ Things to look up:
 * https://www.usenix.org/system/files/conference/atc17/atc17-tsai.pdf
 
 * https://dl-acm-org.proxy.library.carleton.ca/doi/pdf/10.1145/2660267.2660350
-  * Resume reading second column on page 7
+
+# Week 4
+
+## Lecture: Side Channels
+
+- One of the main attack vectors we have introduced
+
+### Definition
+
+- Originates from a cryptography term
+  - Secret extraction from unintended channels
+  - Key word is _unintended_
+  - Side channels are _out of band_, a separate channel, not intended for communication
+  - Created by the adversary -> covert channel
+
+- Side channels vs covert channels
+  - Side channel means an existing but unintended channel
+  - Covert channel means the adversary creates it intentionally (but it's still unintended from the user/vendor/protocol perspective)
+
+- Compare with implementation errors
+
+### Back to Abstractions
+
+- Attenuation of information from a certain interface
+  - Expose the minimum needed information
+
+- Creation of new interfaces/artifacts
+  - E.g. clflush instruction to flush the cache lines
+
+- E.g. cache memory
+  - From the hardware's perspective, it's just very fast memory -> high performance, low capacity
+  - Unlike main memory, __we cannot address it__
+  - Cache existence is abstracted away (we address main memory, and it might be a cache hit and it might not)
+  - Expose the minimum that is needed
+
+- E.g. virtual memory
+  - Process has its own view of the address space
+  - Can see more memory capacity than we physically have
+  - We can even see disk space (swapping, disk I/O) as memory from the process' perspective
+  - The exposed new interface is almost the same as the original
+
+- E.g. device drivers
+  - Different classes of USB
+  - The operating system exposes an interface for interacting with the USB, regardless of model and how it's connected
+  - Abstraction can help to avoid extra refactoring (since we agree to comply to an interface specification)
+
+- Specification
+  - Define how an interface should act, how we can interact with it
+
+- Recall, unspecified parts of the interface lead to side channels
+
+### Computer Architectures
+
+- Instruction Set Architecture (ISA)
+  - A specification of an abstraction (abstraction over the micro-architecture)
+  - What we expose to software: instruction set
+
+- CISC vs RISC
+  - CISC = complex instruction set computing, can have variable byte length instructions
+  - RISC = reduced instruction set computing, simplified
+
+- ISA is the interface between hardware and software
+  - Architecture specification defines this interface
+  - Registers, instructions, memory addressing
+
+- Micro-architecture
+  - The actual specific implementation of an ISA
+  - Vendor-specific and model specific
+  - Can be _very_ diverse
+  - Vendors comply with the ISA, but want to have differences underneath
+
+- The same pattern is reflected in TEE implementations
+  - Vendors add special instructions on top of the ISA to support their TEEs
+  - E.g. SKINIT and SENTER
+
+- C runtime calls a CPUID instruction implicitly to check for vendors-specific extensions
+
+### Micro-Architectural Attacks
+
+- Root cause:
+  - The architecture does not (and cannot) specify everything
+  - The missed falls into micro-architectures
+
+- Timing-based attacks are very common in this category
+
+- Not all micro-architectural artifacts pose a threat
+
+- Not all "micro-architectural" attacks involve a "micro-architecture"
+  - Could be even lower than the micro-architectures
+  - Applies to anything beneath
+
+- Side channels:
+  - To steal information (i.e. reads)
+
+- Fault attacks:
+  - To affect machine state (i.e. writes)
+
+- Implication: MA side channels imply software-only (also, remotely executable)
+  - E.g. cold boot attacks freeze RAM model and plug into another machine
+  - This is not micro-architectural, since it's a physical attack
+  - Would be weird to call this micro-architectural
+
+### Fault Attacks
+
+- To inject faults into the machine state (in a deterministic manner, under our control)
+  - Non-deterministic fault injection would just be a DoS attack
+
+- Rowhammer attacks
+  - Flip bits in DRAM by repeatedly accessing adjacent rows
+  - Physically influence the adjacent row, triggering some controllable effects
+  - Is this micro-architectural? Viau says yes, even though it doesn't directly impact the CPU itself
+
+- Undervolting
+  - CPU cores operate at a certain voltage 
+  - If we maintain the right voltage, it works, otherwise it might fail
+  - There is a threshold in between from working to failure\
+  - If we are close to the threshold, the CPU doesn't directly fail, it just faults
+
+### Micro-Architectural Side Channels
+
+- The ISA does not specify timing characteristics
+
+- Generic mitigation for timing side channels
+  - Make computation time constant for the same function across all platforms
+  - This is would be a huge performance loss
+
+- One stage:
+    - Micro-architectural -> Architectural
+
+- Two stage:
+    - Channel exposure
+    - Micro-architectural -> Architectural
+
+### A Few Start of the Art
+
+- Cache side channels
+  - Timing cache access (hits or misses)
+  - Prime+Probe, Flush+Reload, Evict+Reload, etc.
+
+- Translation Lookaside Buffer (TLB)
+  - Similar to regular cache, but for address translation
+  - Caches virtual to physical mappings in the MMU
+  - TLBleed
+
+- Execution engine ports
+  - Timing the contention latency of execution engine ports
+  - Figure out what instructions are being executed
+  - PortSmash
+
+- Interrupt handling latency
+
+### How Cache Memory Works
+
+- Set-associative cache
+  - Divide cache memory into cache sets, corresponding to the number of blocks in main memory
+  - Each memory block corresponds to a cache set, which has a certain number of cache lines
+
+- Main memory is way bigger than cache memory
+  - We need to a one to many mapping
+  - Certain bits of the address determine which cache sets / lines it goes to
+
+### First Type of Cache Side Channel: Evict and Time
+
+- Prime the cache set by invoking the victim function
+
+- Time the victim function
+
+- Evict the cache set (fill it up)
+  - Mapping to different memory blocks
+  - Do some operations involving the cache set in our memory block
+
+- Invoke the victim function again and time it
+  - Was it slower? If so, was not accessed since when we evicted it
+
+- Pre-condition (invoking the victim function) is not so easy to satisfy
+
+### Second Type of Cache Side Channel: Prime + Probe
+
+- Prime the cache set with your own function
+
+- Wait for the victim to execute (which will evict the set you primed)
+
+- Re-access the address in step 1 and time your own function
+  - Lowers the bar for mounting the attack
+
+### Third Type: Flush + Reload
+
+- Flush a cached address (with the clflush instruction)
+  - Requires shared memory or memory de-duplication
+  - Advantage is that it's very specific (at the granularity of the cache line)
+
+- Wait for the victim function to execute
+
+- Reload the saved address in step 1
+
+### Summary of Requirements
+
+- evict + time
+  - function invocation
+
+- prime + probe
+  - wait
+
+- Flush + Reload
+  - shared memory
+
+### Out of Order Execution
+
+- As long as the programmer can't tell the difference in the end, we have no _architectural effects_
+
+- But these can produce micro-architectural effects
+  - Adversary can then use a side channel to convert to architectural
+
+### Speculative Execution
+
+- Branch predictor
+
+- Recorded dynamic history of code executing
+
+- Take a speculated path and correct later if wrong
+  - Adversary can mistrain the branch predictor to coerce it to take a certain (incorrect) path
+
+## Jonathan: Meltdown Discussion Lead
+
+- Address is loaded into a register, not accessible but the micro-architecture accesses it still
+
+- Viau: trade-off between performance, security, and cost
+
+- Viau:
+  - Limitations on attack papers are expected 
+  - We need to fix the root
+
+- Viau: Foreshadow
+  - Made a video where they show how they could quickly extract data from the SGX enclave
