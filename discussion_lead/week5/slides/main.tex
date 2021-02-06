@@ -90,10 +90,20 @@
 
 \usepackage{biblatex}
 \bibliography{refs.bib}
-\setbeamertemplate{bibliography item}[text]
 \renewcommand*{\bibfont}{\footnotesize}
 
+\PassOptionsToPackage{hyphens}{url}
+%\setcounter{biburllcpenalty}{1}
+%\setcounter{biburlucpenalty}{1}
+%\setcounter{biburlbigbreakpenalty}{2}
+%\setcounter{biburlbreakpenalty}{1}
+
 \usepackage{appendixnumberbeamer}
+
+\makeatletter
+\g@addto@macro{\UrlNoBreaks}{\do:}
+\g@addto@macro{\UrlBreaks}{\do\/}
+\makeatother
 
 % =========================================================================== %
 % Document                                                                    %
@@ -171,6 +181,7 @@
 \nocite{*}
 \begin{frame}[allowframebreaks, noframenumbering, plain]
   \frametitle{References}
+  \sloppy
   \printbibliography
 \end{frame}
 
