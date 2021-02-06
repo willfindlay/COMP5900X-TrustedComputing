@@ -1,3 +1,4 @@
+% Spectre paper
 @inproceedings{kocher2019_spectre,
   author    = {Paul Kocher and
                Jann Horn and
@@ -21,6 +22,7 @@
   doi       = {10.1109/SP.2019.00002},
 }
 
+% Meltdown paper
 @inproceedings{lipp2018_meltdown,
   author    = {Moritz Lipp and
                Michael Schwarz and
@@ -45,3 +47,71 @@
   url       = {https://www.usenix.org/conference/usenixsecurity18/presentation/lipp},
 }
 
+% -----------------------------------------------------------------------------
+% Supplementary
+% -----------------------------------------------------------------------------
+
+% Speculative buffer overflows, attacks and defenses
+% Discusses mitigations such as index masking (coarse and fine-grained), lfence
+% instructions, and retpolines
+@article{kiriansky2018_spec,
+  author    = {Vladimir Kiriansky and
+               Carl A. Waldspurger},
+  title     = {{Speculative Buffer Overflows: Attacks and Defenses}},
+  journal   = {CoRR},
+  volume    = {abs/1807.03757},
+  year      = {2018},
+  url       = {http://arxiv.org/abs/1807.03757},
+  archivePrefix = {arXiv},
+  eprint    = {1807.03757},
+}
+
+% Spectre defenses deployed in the Chrome Browser
+% Somehow isolating the processes can mitigate the risk of Spectre?
+@inproceedings{reis2019_site_isolation,
+  author    = {Charles Reis and
+               Alexander Moshchuk and
+               Nasko Oskov},
+  editor    = {Nadia Heninger and
+               Patrick Traynor},
+  title     = {{Site Isolation: Process Separation for Web Sites within the Browser}},
+  booktitle = {28th {USENIX} Security Symposium, {USENIX} Security 2019, Santa Clara,
+               CA, USA, August 14-16, 2019},
+  pages     = {1661--1678},
+  publisher = {{USENIX} Association},
+  year      = {2019},
+  url       = {https://www.usenix.org/conference/usenixsecurity19/presentation/reis},
+}
+
+
+% Index masking in the Linux kernel, similar to eBPF
+% https://github.com/torvalds/linux/blob/master/include/linux/nospec.h
+@misc{linux_nospec,
+  author  = {{Linux Contributors}},
+  title   = {{linux/nospec.h}},
+  year    = {2018},
+  url     = {https://github.com/torvalds/linux/blob/master/include/linux/nospec.h},
+  urldate = {2020-02-05}
+}
+
+% Official Spectre attack website
+% Offers a high level description of Spectre and Meltdown along with differences between
+% the two and mitigations
+@misc{spectre_site,
+  author  = {{Graz University of Technology}},
+  title   = {{Meltdown and Spectre}},
+  year    = {{2018}},
+  url     = {https://spectreattack.com/},
+  urldate = {2020-02-05}
+}
+
+% Spectre defeats traditional constant-time crypto implementations
+% But these guys present a model for making constant-time crypto side channel aware
+% https://www.youtube.com/watch?v=_hIHP8v-xuw
+% TODO: maybe get a reference to the original paper
+
+% TODO: Get a reference discussing retpolines (maybe the Intel whitepaper)
+% https://software.intel.com/security-software-guidance/api-app/sites/default/files/Retpoline-A-Branch-Target-Injection-Mitigation.pdf
+% Discuss gcc options, present differences between generated assembly (with and without mindirect-branch=thunk)
+% Discuss similar options for other compiler toolchains, like LLVM
+% Discuss how Linux kernel is now compiling with -mindirect-branch=thunk by default
