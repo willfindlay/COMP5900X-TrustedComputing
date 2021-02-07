@@ -18,7 +18,6 @@
   pages     = {1--19},
   publisher = {{IEEE}},
   year      = {2019},
-  url       = {https://doi.org/10.1109/SP.2019.00002},
   doi       = {10.1109/SP.2019.00002},
 }
 
@@ -83,6 +82,26 @@
   url       = {https://www.usenix.org/conference/usenixsecurity19/presentation/reis},
 }
 
+% WebKit mitigations: https://webkit.org/blog/8048/what-spectre-and-meltdown-mean-for-webkit/
+
+% Spectre is here to stay
+% Presents some nice examples of how the variants work
+@article{mcilroy2019_spectre_is_here,
+  author    = {Ross McIlroy and
+               Jaroslav Sevc{\'{\i}}k and
+               Tobias Tebbi and
+               Ben L. Titzer and
+               Toon Verwaest},
+  title     = {{Spectre is Here to Stay: An Analysis of Side-Channels and Speculative
+               Execution}},
+  journal   = {CoRR},
+  volume    = {abs/1902.05178},
+  year      = {2019},
+  url       = {http://arxiv.org/abs/1902.05178},
+  archivePrefix = {arXiv},
+  eprint    = {1902.05178},
+}
+
 
 % Index masking in the Linux kernel, similar to eBPF
 % https://github.com/torvalds/linux/blob/master/include/linux/nospec.h
@@ -115,3 +134,15 @@
 % Discuss gcc options, present differences between generated assembly (with and without mindirect-branch=thunk)
 % Discuss similar options for other compiler toolchains, like LLVM
 % Discuss how Linux kernel is now compiling with -mindirect-branch=thunk by default
+%   Linux: https://git.kernel.org/pub/scm/linux/kernel/git/ak/linux-misc.git/commit/?h=spec/retpoline-415-1
+
+@article{mittal2019_branch_prediction,
+  author    = {Sparsh Mittal},
+  title     = {A survey of techniques for dynamic branch prediction},
+  journal   = {Concurr. Comput. Pract. Exp.},
+  volume    = {31},
+  number    = {1},
+  year      = {2019},
+  url       = {https://doi.org/10.1002/cpe.4666},
+  doi       = {10.1002/cpe.4666},
+}
