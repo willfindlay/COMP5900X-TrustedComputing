@@ -64,7 +64,7 @@
    % with these extra keywords:
    {morekeywords={cdqe,cqo,cmpsq,cmpxchg16b,jrcxz,lodsq,movsxd, %
                   popfq,pushfq,scasq,stosq,iretq,rdtscp,swapgs, %
-                  leaq,movq,movl, %
+                  leaq,movq,movl,pause,lfence, %
                   rax,rdx,rcx,rbx,rsi,rdi,rsp,rbp,rip, %
                   r8,r8d,r8w,r8b,r9,r9d,r9w,r9b, %
                   r10,r10d,r10w,r10b,r11,r11d,r11w,r11b, %
@@ -139,6 +139,7 @@
 
 \usepackage{svg}
 \usepackage{mathtools}
+\usepackage[normalem]{ulem}
 
 % =========================================================================== %
 % Document                                                                    %
@@ -243,10 +244,14 @@
   \vfill
   {\bf Attacker Capabilities:}
   \begin{itemize}
-    \item Attacker can spawn a process in user mode with {\bf ordinary user-level privileges}
-    \item Ability to pass parameters to the victim
+    \item Attacker can spawn or interact with a process in user mode with {\bf ordinary user-level privileges}
+    \item Ability to pass parameters to the victim (if another process)
     \begin{itemize}
       \item E.g.~RPC, system calls, sockets, file I/O, library calls, etc.
+    \end{itemize}
+    \item Some shared memory between attacker and victim (if another process)
+    \begin{itemize}
+      \item E.g.~a shared library mapped to same physical memory
     \end{itemize}
     \item For attacks against KVM, we assume ring 0 access in the {\bf guest OS only}
   \end{itemize}
@@ -258,10 +263,6 @@
     \begin{itemize}
       \item Before $\mu$-architectural updates circa 2019
       \item Dynamic branch prediction (trainable)
-    \end{itemize}
-    \item Some shared memory between attacker and victim (if another process)
-    \begin{itemize}
-      \item E.g.~a shared library mapped to same physical memory
     \end{itemize}
   \end{itemize}
 \end{frame}
@@ -334,10 +335,10 @@
       \item CPU mispredicts a branch on the value of $n$
       \begin{itemize}
         \item In variant 1, this is provided by the attacker (e.g.~via system call, socket, file I/O, RPC, etc.)
-        \item We'll touch on variant 2 later
+        \item In variant 2, this is implicitly chosen during training
       \end{itemize}
       \item CPU speculatively executes the incorrect branch
-      \item Transient instructions encode a secret value $v$ (dependent on $n$) into $\mu$-architectural state
+      \item Transient instructions encode a secret value $v$ into $\mu$-architectural state
     \end{itemize}
 
     \vfill
@@ -383,7 +384,7 @@
     \item Incorrect branch predictions are retired
     \item But $\mu$-architectural effects remain
     \item Number of transient instructions depends on the size of the CPU's reorder buffer
-    \item Can be quite high in practice (in some CPUs 192 $\mu$-ops $\sim$ 180ish ops)
+    \item Can be quite high in practice (in some CPUs up to 192 $\mu$-ops)
   \end{itemize}
 
   \vfill
@@ -424,8 +425,8 @@
 \begin{frame}[c]{(Mis)Training the Branch Predictor}{}
   {\bf How to Induce Speculative Execution?}
   \begin{itemize}
-    \item Dynamic branch predictors\footnote{Mittal \cite{mittal2019_branch_prediction} is a nice resource for those who want an in-depth study of branch prediction techniques} update their prediction model using historical data
-    \item The attacker can invoke a specific branch target
+    \item Dynamic branch predictors\footnote{Mittal~\cite{mittal2019_branch_prediction} is a nice resource for those who want an in-depth study of branch prediction techniques} update their prediction model using historical data
+    \item To train, the attacker can repeatedly invoke a specific branch target
     \begin{itemize}
       \item E.g.~Use a \code{foo} such that \code{foo < size}
       \item Number of times they need to do this depends on BP implementation
@@ -545,36 +546,16 @@
   {\bf Variant 4: Speculative Store Bypass (Spectre-NG)}
   \begin{itemize}
     \item Abuses speculation in CPU's {\bf\color{green}Store-To-Load} forwarding logic
+    \item The paper doesn't go into huge detail about this variant, focuses on variants 1 and 2
     \item We will cover this if we have time
   \end{itemize}
 \end{frame}
 
+\section{Variant 1}
+
 \begin{frame}[c, fragile]{Variant 1: Conditional Branch Misprediction}
   \begin{columns}
-    \begin{column}[t]{0.35\textwidth}
-      {\bf Basic Idea}
-      \begin{itemize}
-        \item Trick CPU into performing out of bounds access
-        \item Encode secret into cache memory
-        \item Transfer using a side channel
-      \end{itemize}
-
-      \vspace{0.5em}
-      {\bf Toy Example}
-      \begin{listing}[language=c,gobble=8,xleftmargin=1em]
-        const size_t arr1_size = 16;
-        int arr1[16];
-        int arr2[256 * 512];
-
-        void victim(int foo) {
-            if (foo < arr1_size) {
-                int x = arr2[arr1[foo] * 512];
-            }
-        }
-      \end{listing}
-    \end{column}
-
-    \begin{column}[t]{0.65\textwidth}
+    \begin{column}[c]{0.6\textwidth}
       {\bf Steps in the Attack}
       \begin{enumerate}
         \item Flush or evict \code{arr2} from the cache.
@@ -596,8 +577,30 @@
         \end{itemize}
       \end{enumerate}
     \end{column}
+
+    \begin{column}[c]{0.4\textwidth}
+      \begin{listing}[language=c,gobble=8,xleftmargin=1em]
+        const size_t arr1_size = 16;
+        int arr1[16];
+        int arr2[256 * 512];
+
+        void victim(int foo) {
+            if (foo < arr1_size) {
+                int x = arr2[arr1[foo] * 512];
+            }
+        }
+      \end{listing}
+      %{\bf Basic Idea}
+      %\begin{itemize}
+      %  \item Trick CPU into performing out of bounds access
+      %  \item Encode secret into cache memory
+      %  \item Transfer using a side channel
+      %\end{itemize}
+
+      %\vspace{0.5em}
+    \end{column}
   \end{columns}
-  \ufootnote{Toy example is based on the Spectre paper \cite{kocher2019_spectre}.}
+  \ufootnote{Toy example is based on the Spectre paper~\cite{kocher2019_spectre}.}
 \end{frame}
 
 \begin{frame}[c]{Variant 1 Examples}{}
@@ -630,35 +633,6 @@
       \item PoC requires a CPU without SMAP, but it's possible to work around this
     \end{itemize}
   \end{itemize}
-\end{frame}
-
-\begin{frame}[c,fragile]{Variant 1 Examples (Not in the Paper)}{}
-  {\bf Linux Kernel {\tt swapgs} Bypass}
-  \begin{itemize}
-    \item CPU provides a special instruction {\tt swapgs} which the kernel calls on interrupt or exception
-    \item An attacker can speculatively bypass a {\tt swapgs} check in the kernel
-    \item This would allow them to access arbitrary percpu kernel memory
-    \begin{itemize}
-      \item Would still need to transfer using cache side channels though
-    \end{itemize}
-  \end{itemize}
-
-  \vfill
-  The attacker would bypass the following check:
-  \begin{listing}[language=c,gobble=4,xleftmargin=1em]
-    if (/* Coming from user space */)
-      asm volatile ("swapgs");
-    /* Business logic down here, reading percpu values
-     * Gets speculatively executed without swapgs */
-  \end{listing}
-
-  \vfill
-  \begin{listing}[language=none,gobble=4,xleftmargin=1em]
-    lscpu:
-    Vulnerability Spectre v1:        Mitigation; usercopy/swapgs barriers and __user pointer sanitization
-  \end{listing}
-
-  \ufootnote{Based on Linux kernel docs \cite{linux_hwvuln}.}
 \end{frame}
 
 \begin{frame}[c, fragile]{Mitigating Variant 1}{Index Masking}
@@ -770,7 +744,7 @@
   \begin{itemize}
     \item Toy example can do 10KB/s
     \item eBPF attack is on the order of 2KB/s to 5KB/s
-    \item JavaScript attack speed is not presented, but we can expect this to be much lower
+    \item JavaScript attack speed is not presented, but we can expect this to be quite low as well
     \begin{itemize}
       \item Lack of a native high resolution timer
       \item Must rely on eviction rather than flushing
@@ -789,6 +763,8 @@
     \end{itemize}
   \end{itemize}
 \end{frame}
+
+\section{Variant 2}
 
 \begin{frame}[c,fragile]{Variant 2: Indirect Branch Poisoning}{}
   {\bf Overview}
@@ -840,14 +816,14 @@
     \end{column}
   \end{columns}
 
-  \ufootnote{Figure based on information in Intel whitepaper \cite{intel_retpoline}.}
+  \ufootnote{Figure based on information in Intel whitepaper~\cite{intel_retpoline}.}
 \end{frame}
 \endgroup
 
 \begin{frame}[c]{Variant 2 Examples}{}
   {\bf PoC on a Windows DLL}
   \begin{itemize}
-    \item Static analysis techniques on {\tt nttdll.dll} to identify a Spectre gadget
+    \item Static analysis techniques on {\tt ntdll.dll} to identify a Spectre gadget
     \item That gadget can read victim memory with an attacker-controlled \texttt{edx} and \texttt{edi}
     \begin{itemize}
       \item Set {\tt edx} to the base address of a probe array
@@ -887,7 +863,7 @@
   {\bf Single Thread Indirect Branch Prediction (STIBP)}
   \begin{itemize}
     \item Prevent hyperthreaded software running in same core from sharing branch predictions
-    \item Indirect branch predictors are never shared across cores \cite{intel_stibp}
+    \item Indirect branch predictors are never shared across cores~\cite{intel_stibp}
     \item So this would prevent two processes running in same core from influencing each other
   \end{itemize}
 \end{frame}
@@ -922,8 +898,8 @@
         \item Works as follows:
         \begin{enumerate}
           \item Push the function address onto the stack
-          \item Replace the indirect call with a jump into a dummy loop
-          \item Gate the start of the loop with {\tt lfence} and {\tt pause} to prevent speculation and spin forever
+          \item Replace the indirect call with a jump into a dummy loop (speculation will jump into this)
+          \item Gate the start of the loop with {\tt lfence} and {\tt pause} to block speculation
           \item Call {\tt ret} to jump into the correct function
         \end{enumerate}
         \item This can be applied automatically at compile time (gated by a compiler flag)
@@ -933,6 +909,10 @@
 
     \begin{column}[t]{0.5\textwidth}
       \begin{listing}[language=x64,gobble=8,xleftmargin=6em]
+        leaq	my_fn(%rip), %rax
+        movq	%rax, -8(%rbp)
+        movq	-8(%rbp), %rax
+        call	__x86_indirect_thunk_rax
         __x86_indirect_thunk_rax:
         .LFB2:
           call	.LIND1
@@ -946,11 +926,11 @@
       \end{listing}
       \vspace{1em}
       \color{black}%
-      \includegraphics[width=0.9\columnwidth]{figs/retpoline.pdf}%
+      \includegraphics[width=0.7\columnwidth]{figs/retpoline.pdf}%
     \end{column}
   \end{columns}
 
-  \ufootnote{Figure based on information in Intel whitepaper \cite{intel_retpoline}.}
+  \ufootnote{Figure based on information in Intel whitepaper~\cite{intel_retpoline}.}
 \end{frame}
 \endgroup
 
@@ -974,9 +954,9 @@
   \vfill
   {\bf Ease of Mitigation}
   \begin{itemize}
-    \item Mitigations can be applied automatically
-    \item But applying them everywhere can incur significant performance overhead
-    \item Defenders need to consider carefully what code they want to protect
+    \item Retpoline can be applied automatically at compile time
+    \item Barrier mitigations in ISA can incur significant overhead
+    \item Defenders need to consider carefully what code they want to protect with barriers
   \end{itemize}
 \end{frame}
 
@@ -1002,12 +982,14 @@
   \end{itemize}
 \end{frame}
 
+\section{Other Mitigation Strategies}
+
 \begin{frame}[c]{Other Mitigation Strategies}{}
   {\bf Limiting Availability of High Resolution Timers}
   \begin{itemize}
     \item Limit the resolution of available timers + introduce some jittering
     \item Doesn't directly stop the attack, only raises the error rate
-    \item Also wouldn't work for lower-level languages---high resolution timers are critical for many applications
+    \item Also wouldn't be generally applicable---high resolution timers are critical for many applications
   \end{itemize}
 
   \vfill
@@ -1022,7 +1004,7 @@
   {\bf Disabling Speculative Execution}
   \begin{itemize}
     \item System-wide, this is almost definitely not the right approach
-    \item Would introduce a huge performance hit (but might be appropriate for specific applications, e.g.~via {\tt lfence})
+    \item Would introduce a huge performance hit (more appropriate to disable selectively using speculation barriers)
   \end{itemize}
 \end{frame}
 
@@ -1050,12 +1032,14 @@
   \end{itemize}
 \end{frame}
 
+\section{Discussion}
+
 \begin{frame}[c]{Discussion Questions}
   \begin{enumerate}
     \item How can we help prevent something like Spectre and Meltdown from happening in the future?
     \begin{itemize}
-      \item Move towards an open CPU design (e.g.~something similar to RISC-V)?
-      \item Introduce regulations mandating independent audits of ISA design?
+      \item Move towards an open, publicly auditable ISA design?
+      \item Introduce regulations mandating independent audits of ISAs?
     \end{itemize}
 
     \vfill
@@ -1074,6 +1058,55 @@
 \appendix
 
 \section{Backup Slides}
+
+\begin{frame}[c,fragile]{Variant 1 Example (Not in the Paper)}{}
+  {\bf Linux Kernel {\tt swapgs} Bypass}
+  \begin{itemize}
+    \item CPU provides a special instruction {\tt swapgs} which the kernel calls on interrupt or exception
+    \item An attacker can speculatively bypass a {\tt swapgs} check in the kernel
+    \item This would allow them to access arbitrary percpu kernel memory
+    \begin{itemize}
+      \item Would still need to transfer using cache side channels though
+    \end{itemize}
+  \end{itemize}
+
+  \vfill
+  The attacker would bypass the following check:
+  \begin{listing}[language=c,gobble=4,xleftmargin=1em]
+    if (/* Coming from user space */)
+      asm volatile ("swapgs");
+    /* Business logic down here, reading percpu values
+     * Gets speculatively executed without swapgs */
+  \end{listing}
+
+  \vfill
+  \begin{listing}[language=none,gobble=4,xleftmargin=1em]
+    lscpu:
+    Vulnerability Spectre v1:        Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+  \end{listing}
+
+  \ufootnote{Based on Linux kernel docs~\cite{linux_hwvuln}.}
+\end{frame}
+
+\begin{frame}[c,fragile]{Variant 4: Speculative Store Bypass}{}
+  {\bf The Attack}
+  \begin{itemize}
+    \item Relies on CPU speculating that a load does not depend on a prior store
+    \item When the CPU predicts that a load does not depend on a store, it tries to take a value from L1 cache and use that instead
+    \item This can be used to trigger a Spectre gadget on pointer read
+  \end{itemize}
+
+  \vfill
+  {\bf Mitigations}
+  \begin{itemize}
+    \item Existing software mitigations for variant 1 should also work on variant 4
+    \item Intel released a microcode update that patches variant 4
+    \begin{itemize}
+      \item Experimental results show 1--3\% performance impact on Windows, about 8\% on Linux~\cite{variant4_performance}
+      \item Difference is likely due to Linux's more efficient scheduler
+    \end{itemize}
+  \end{itemize}
+\end{frame}
 
 \section{References}
 

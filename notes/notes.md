@@ -1188,7 +1188,7 @@ Things to look up:
   - Is this micro-architectural? Viau says yes, even though it doesn't directly impact the CPU itself
 
 - Undervolting
-  - CPU cores operate at a certain voltage 
+  - CPU cores operate at a certain voltage
   - If we maintain the right voltage, it works, otherwise it might fail
   - There is a threshold in between from working to failure\
   - If we are close to the threshold, the CPU doesn't directly fail, it just faults
@@ -1304,8 +1304,14 @@ Things to look up:
 - Viau: trade-off between performance, security, and cost
 
 - Viau:
-  - Limitations on attack papers are expected 
+  - Limitations on attack papers are expected
   - We need to fix the root
 
 - Viau: Foreshadow
   - Made a video where they show how they could quickly extract data from the SGX enclave
+
+## Some Further Reading:
+
+- https://www.usenix.org/legacy/event/sec11/tech/full_papers/Muller.pdf
+- https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-916.pdf
+- https://www.cl.cam.ac.uk/research/security/ctsrd/cheri/
