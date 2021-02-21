@@ -9,7 +9,7 @@
 \usepackage{beamerthemesimple}
 
 \date{February 24$^{th}$, 2021}
-\title{Spectre Attacks}
+\title{GRIFFIN\@: Guarding Control Flows Using Intel Processor Trace}
 \author{William Findlay}
 \institute{Carleton University\\\href{mailto:will@ccsl.carleton.ca}{\ttfamily will@ccsl.carleton.ca}}
 
@@ -106,12 +106,14 @@
 % Table of Contents for sections
 \AtBeginSection[]
 {
+    \begingroup
     \setwatermark{}
     \begin{frame}[c, noframenumbering, plain]
         \begin{center}
         \fontsize{36}{42} \selectfont \bfseries \color{destacado} \insertsection%
         \end{center}
     \end{frame}
+    \endgroup
 }
 
 \usepackage{biblatex}
@@ -143,6 +145,7 @@
 \usepackage[normalem]{ulem}
 
 \newcommand{\todo}[1]{{\color{orange}[#1]}}
+\providecommand{\etal}{{\textit{et al\@.}}}
 
 \newcommand{\red}[1]{{\color{red}#1}}
 \newcommand{\orange}[1]{{\color{orange}#1}}
@@ -176,15 +179,14 @@
 \begin{frame}[c]{Paper Overview}{}
   {\bf Title}
   \begin{itemize}
-    \item \enquote{GRIFFIN: Guarding Control Flows Using Intel Processor Trace}
+    \item \enquote{GRIFFIN\@: Guarding Control Flows Using Intel Processor Trace}
   \end{itemize}
 
   \vfill
   {\bf Authors}
   \begin{itemize}
-    \item Xinyang Ge, Weidong Cui, Trent Jaeger
+    \item Xinyang Ge, Weidong Cui, Trent Jaeger\footnote{You might know Trent Jaeger from his excellent OS security textbook~\cite{ge2017_griffin}}
     \item Microsoft Research, Pennsylvania State University
-    \item You might know Trent Jaeger from his excellent OS security textbook~\todo{CITE}
   \end{itemize}
 
   \vfill
@@ -193,7 +195,6 @@
     \item ASPLOS 2017
     \item Architectural Support for Programming Languages and Operating Systems
     \item Recognized as a flagship conference in hardware / OS design
-    %\item Not really a security venue per se
   \end{itemize}
 \end{frame}
 
@@ -214,7 +215,8 @@
     \item Griffin $\rightarrow$ first online CFI implementation backed by Intel PT hardware
     \item Multiple policy granularities for flexibility (performance vs security at runtime)
     \item Performance is comparable to software-only CFI, but with better security
-    \item Present possible optimizations for further performance improvements
+    \item Support for JITed languages (dubious)
+    \item Potential performance improvements re.~Intel PT design
   \end{itemize}
 \end{frame}
 
@@ -265,8 +267,9 @@
   \item Code reuse attack (e.g.~ROP, JOP, ret2libc)
   \item The point is to achieve some attacker goal by subverting normal control flow
   \begin{itemize}
-    \item Spawn a shell, write to a sensitive file, etc.
+    \item Spawn a shell, write to a sensitive file, disable DEP, etc.
   \end{itemize}
+  \item Some defences target the memory corruption step, others target the code reuse step
 \end{itemize}
 \end{frame}
 
@@ -294,6 +297,7 @@
 % FIXME/TODO: Verify the following three slides for accuracy
 
 \begin{frame}[c]{Compile-Time Instrumentation}{}
+  {\bf Overview}
   \begin{itemize}
     \item Extend compiler to generate correct CFG for compiled programs
     \item Enforce CFI in language runtime (here, runtime $\equiv$ code you did not write)
@@ -315,8 +319,10 @@
 \end{frame}
 
 \begin{frame}[c]{Static Binary Instrumentation}{}
+  {\bf Overview}
   \begin{itemize}
     \item Use static analysis to generate a CFG for an existing binary
+    \item Similar to compile-time instrumentation but without compiler support
   \end{itemize}
 
   \vfill
@@ -335,8 +341,11 @@
 \end{frame}
 
 \begin{frame}[c]{Runtime Instrumentation}{}
+  {\bf Overview}
   \begin{itemize}
-    \item Generate and monitor control flow representation in real time
+    \item Instrument the application at runtime and enforce at runtime
+    \item Policy can be generated or manually crafted, changed at will
+    \item Griffin technically falls into this category, but uses hardware assistance
   \end{itemize}
 
   \vfill
@@ -349,7 +358,8 @@
   \vfill
   {\bf \red{Drawbacks}}
   \begin{itemize}
-    \item Can be very slow (orders of magnitude more overhead)
+    \item Can be very slow (sometimes order of magnitude slower)
+    \item Implementations that are not very slow offer limited protection
   \end{itemize}
 \end{frame}
 
@@ -377,69 +387,493 @@
 \end{frame}
 
 \begin{frame}[c]{Intel Processor Trace: Overview}{}
+  \begin{itemize}
+    \item A new hardware-supported control flow tracing feature in Intel CPUs
 
+    \vfill
+    \item Originally designed for \textbf{offline debugging}
+    \begin{itemize}
+      \item Griffin repurposes it for \textbf{online CFI}
+    \end{itemize}
+
+    \vfill
+    \item Records a \textbf{minimal trace} that can be used to \textbf{reconstruct control flow}
+
+    \vfill
+    \item Traces are recorded in a minified format called \textbf{trace packets}
+    \begin{itemize}
+      \item Trace packets encode \textbf{branch targets} and \textbf{branch-taken indicators}
+      \item \textbf{Branch sources} are \textit{not} recorded
+      \item Full control flow reconstruction requires trace packets + program binaries
+    \end{itemize}
+
+    \vfill
+    \item Trace packets are directly stored in contiguous physical memory regions
+    \begin{itemize}
+      \item Avoids the cost of address translation through the MMU
+    \end{itemize}
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[c]{Intel Processor Trace: Trace Packets}{}
+{\bf Packet Generation Enable (PGE)}
+\begin{itemize}
+  \item IP value at which tracing starts
+\end{itemize}
 
+\vfill
+{\bf Packet Generation Disable (PGD)}
+\begin{itemize}
+  \item IP value at which tracing stops
+\end{itemize}
+
+\vfill
+{\bf Taken Not Taken (TNT)}
+\begin{itemize}
+  \item Marks up to 6 conditional branches
+  \item \texttt{1} $\rightarrow$ taken
+  \item \texttt{0} $\rightarrow$ not taken
+  \item Specific branches must be inferred from the code + PGE/PGD
+\end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Intel Processor Trace: Trace Packets}{}
+{\bf Target Instruction Pointer (TIP)}
+\begin{itemize}
+  \item Specifies a target IP for an indirect branch
+  \item Specific branch must be inferred from the code + PGE/PGD
+\end{itemize}
+
+\vfill
+{\bf Flow Update Packet (FUP)}
+\begin{itemize}
+  \item Specifies a source address for asynchronous events
+\end{itemize}
+
+\vfill
+{\bf Packet Stream Boundaries (PSB)}
+\begin{itemize}
+  \item Unique pattern that marks a location in trace output
+  \item Can be used as a synchronization point between workers processing the trace
+\end{itemize}
 \end{frame}
 
 \section{Griffin Design \& Implementation}
 
 \begin{frame}[c]{Design Overview}{}
+  \begin{itemize}
+    \item Hardware-assisted CFI using Intel PT
+    \begin{itemize}
+      \item Trace control flow at runtime using Intel PT and compare it to some policy
+      \item Griffin takes PT traces in physical memory + program binary as input
+    \end{itemize}
+  \end{itemize}
+
+  \vfill
+  \begin{itemize}
+    \item Disassemble and divide program binary up into {\bf basic blocks}
+    \begin{itemize}
+      \item A basic block is just a contiguous code region with no jumps, calls, or returns
+    \end{itemize}
+  \end{itemize}
+
+  \vfill
+  \begin{itemize}
+    \item Follow traces and match trace packets with basic blocks
+    \begin{itemize}
+      \item Policy is stored at some offset from code pages in user memory
+      \item Look up policy and verify whether CFI has been violated
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Design Overview}{}
+  \begin{itemize}
+    \item Most overhead comes from processing trace logs
+    \begin{itemize}
+      \item Griffin trades memory usage for performance
+      \item Store as much state in memory as possible
+    \end{itemize}
+
+    \vfill
+    \item Four policy enforcement strategies for balancing security and performance
+    \begin{enumerate}
+      \item Coarse-grained policy
+      \item Fine-grained policy
+      \item Stateful policy
+      \item Combination policy
+    \end{enumerate}
+
+    \vfill
+    \item Policy strategy can be switched at runtime according to a trace backlog threshold
+    \begin{itemize}
+      \item Fall back to a more performant but less secure policy when bottlenecking
+      \item Higher threshold $\rightarrow$ lower performance, higher security
+      \item Lower threshold $\rightarrow$ higher performance performance, lower security
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{P1: Coarse-Grained Policy}{}
+  \begin{itemize}
+    \item Coarse-grained policy deals only in {\bf target addresses for indirect calls}
+    \begin{itemize}
+      \item This means no need to reconstruct control flow at all
+      \item Simply mark an indirect target as allowed or not allowed
+      \item High performance, lower security
+    \end{itemize}
+
+    \vfill
+    \item For every code page, store a policy page
+    \begin{itemize}
+      \item Stored at a constant offset in userspace (+8TB) for fast lookup at runtime
+      \item Griffin tracks dynamic linking and maps additional policy pages for libraries
+    \end{itemize}
+
+    \vfill
+    \item When a program makes an indirect call:
+    \begin{enumerate}
+      \item Look up the policy page for the target
+      \item Check the value at the corresponding address
+      \item 1 $\rightarrow$ allowed, 0 $\rightarrow$ denied
+    \end{enumerate}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{P1: Coarse-Grained Policy}{}
+  \begin{center}
+    \color{black}
+    \includegraphics[width=0.8\columnwidth]{figs/indirect_call.pdf}
+  \end{center}
+\end{frame}
+
+\begin{frame}[c]{P2: Fine-Grained Policy}{}
+  \begin{itemize}
+    \item Fine-grained policy {\bf extends coarse-grained policy} with information\\about {\bf source addresses}
+
+    \vfill
+    \item Instead of policy pages, store a {\bf policy matrix}
+    \begin{itemize}
+      \item An $M \times N$ sparse matrix that maps sources to targets
+      \item Matrix is stored at a constant offset in userspace
+    \end{itemize}
+
+    \vfill
+    \item Intel PT does not expose source addresses in trace packets
+    \begin{itemize}
+      \item Sources need to be reconstructed from disassembled binary + trace packets
+      \item Walk the trace and basic blocks, following TNT packets and TIP packets
+      \item Results in higher security, but lower performance than coarse-grained
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Optimization: Parallelization}{}
+  \begin{itemize}
+    \item Processing traces in fine-grained policy is an {\bf embarrassingly parallel} task
+    \begin{itemize}
+      \item One series of trace packets does not depend on another
+      \item Therefore, no synchronization required while working on traces
+    \end{itemize}
+
+    \vfill
+    \item Griffin assigns multiple worker threads to process traces
+    \begin{itemize}
+      \item Just wait for all worker threads to finish their job
+      \item This can efficiently use CPU time, particularly when some cores are idle\\or when programs are I/O bound
+      \item Griffin can back off under heavy contention
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Optimization: Caching Disassembly}{}
+  \begin{itemize}
+    \item Repeated disassembly at runtime is {\bf prohibitively expensive}
+    \begin{itemize}
+      \item Blocks and functions are often executed multiple times
+      \item Disassembling multiple times is inefficient
+      \item The solution is storing this information at runtime, so we can look it up later
+    \end{itemize}
+
+    \vfill
+    \item Griffin stores 8 {\bf basic block pointer pages} per code page
+    \begin{itemize}
+      \item Pointer pages are at a fixed offset to code pages, just like policy pages
+      \item Worker threads use compare-and-swap when writing to pointer pages
+      \item Each pointer page stores a pointer to a heap-allocated structure
+    \end{itemize}
+
+    \vfill
+    \item Heap-allocated structures store:
+    \begin{enumerate}
+      \item Disassembly information for the code page
+      \item Source and destination addresses for lookup on indirect branching
+    \end{enumerate}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{P3: Stateful Policy}{}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+        \item Stateful policy is a fine-grained policy that also tracks {\bf state}
+        \begin{itemize}
+          \item Keep track of the call stack using a {\bf shadow stack}
+        \end{itemize}
+
+        \vspace{1.5em}
+        \item Add extra rows to the policy matrix to store shadow stack
+
+        \vspace{1.5em}
+        \item Worker threads output a list of call and return addresses
+        \begin{itemize}
+          \item Compare calls and returns with shadow stack policy
+        \end{itemize}
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \color{black}
+      \includegraphics[width=1\columnwidth]{figs/stateful_policy.pdf}
+    \end{column}
+  \end{columns}
 
 \end{frame}
 
-\begin{frame}[c]{Coarse-Grained Policy}{}
+\begin{frame}[c]{Problem: Sequential Reconstruction}{}
+  \begin{itemize}
+    \item Enforcing a shadow stack policy requires calls and rets to be {\bf in order}
+    \begin{itemize}
+      \item But Griffin is processing each trace in parallel
+    \end{itemize}
 
+    \vfill
+    \item Solution: process traces in parallel and stitch together sequentially
+    \begin{itemize}
+      \item Order is preserved within a trace
+      \item Just need to combine traces in sequence
+    \end{itemize}
+
+    \vfill
+    \item This incurs some additional overhead due to the sequential phase
+    \begin{itemize}
+      \item But stateful policy is even more secure than fine-grained policy
+    \end{itemize}
+  \end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Fine-Grained Policy}{}
+\begin{frame}[c]{P4: Combination Policy}{}
+  \begin{itemize}
+    \item A performance enhancement over stateful policy without sacrificing security
+    \begin{itemize}
+      \item Enforce stateful policy on back-edges (e.g.~returns)
+      \item Enforce fine-grained policy on forward-edges (e.g.~calls)
+    \end{itemize}
 
+    \vfill
+    \item Carlini \etal~\cite{carlini2015_cfi} recommend shadow stack enforcement on return addresses
+    \begin{itemize}
+      \item This helps mitigate ROP-style attacks by enforcing correct returns
+      \item Benefits of a shadow stack for forward edges are less clear
+      \item Therefore, Griffin can get away with shadow stack enforcement on back edges only
+    \end{itemize}
+  \end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Stateful Policy}{}
+\begin{frame}[c]{Problem: Support for JITed Languages}{}
+  \begin{itemize}
+    \item Problems arise when trying to support just-in-time compiled (JITed) applications
+    \begin{itemize}
+      \item Recall that this was one of Griffin's primary goals
+      \item Some JIT compilers include optimizations that break Griffin
+    \end{itemize}
 
-\end{frame}
+    \vfill
+    \item E.g.~Javascript under Firefox's Gecko engine
+    \begin{itemize}
+      \item Poisoning unmapped executable memory
+      \item Incremental garbage collection
+      \item OSR optimization breaks CFI
+      \item Replacement of return instructions in switch table
+    \end{itemize}
 
-\begin{frame}[c]{Combination Policy}{}
-
-\end{frame}
-
-\begin{frame}[c]{Implementation}{}
-  \todo{SPLIT THIS UP INTO MULTIPLE SLIDES}
+    \vfill
+    \item In order to make it work, they had to manually patch Firefox's JIT compiler
+    \begin{itemize}
+      \item Can we reasonably expect to patch every single JIT compiler? (Of course not)
+    \end{itemize}
+  \end{itemize}
 \end{frame}
 
 \section{Griffin Evaluation}
 
 \begin{frame}[c]{Evaluation: Performance Overhead}{}
+  \begin{itemize}
+    \item Performance evaluation consisted of micro- and macro-benchmarks
+    \begin{itemize}
+      \item Test Griffin's performance and memory overhead
+      \item Allocated 6 worker threads and tested reduced numbers as well
+    \end{itemize}
 
+    \vfill
+    \item SPEC CPU 2006 micro-benchmarks
+    \begin{itemize}
+      \item Commonly used to evaluate related work
+      \item Intel PT without processing trace buffers as a control
+      \item Evaluated overhead for coarse-grained, fine-grained, and combination policies
+    \end{itemize}
+
+    \vfill
+    \item Real-world applications
+    \begin{itemize}
+      \item Firefox (with JIT compiler modifications)
+      \item Nginx (web server)
+      \item exim (email server)
+      \item vsftpd (FTP daemon)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Evaluation: Performance Overhead}{}
+  {\bf SPEC CPU 2006 Results}
+  \begin{itemize}
+    \item Average slowdown under combination policy is about 9.5\%
+    \begin{itemize}
+      \item But the worst-case overheads exceed 30\%
+    \end{itemize}
+    \item Griffin is outperformed by some existing systems
+    \begin{itemize}
+      \item But the authors argue these systems offer incomplete protection
+    \end{itemize}
+    \item Griffin compares favourably with other shadow stack mechanisms
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Evaluation: Performance Overhead}{}
+  {\bf Real-World Application Results}
+  \begin{itemize}
+    \item Performance impact on real-world applications is more modest
+    \begin{itemize}
+      \item About 12\% in the worst-case (Firefox)
+      \item Negligible for vsftpd, exim, and Nginx
+    \end{itemize}
+    \item CPU contention under high workloads is a significant bottleneck
+    \item I/O bound applications perform better under Griffin
+    \begin{itemize}
+      \item Many practical use cases for CFI are I/O bound applications
+      \item E.g.~web servers, email clients, etc.
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Optimizing Intel PT for Online CFI}{}
+  {\bf Including Source Addresses in Intel PT}
+  \begin{itemize}
+    \item Perhaps the most obvious optimization
+    \item Saves the need to do any reconstruction in fine-grained policy
+    \begin{itemize}
+      \item Stateful policy still requires some work, however
+    \end{itemize}
+    \item Trade-off between performance and memory
+    \begin{itemize}
+      \item Less work during online tracing, but traces would be larger
+    \end{itemize}
+    \item Could enable a toggle for offline use cases
+  \end{itemize}
+
+  \vfill
+  {\bf Performance Improvements}
+  \begin{itemize}
+    \item With a manually modified trace, performance improves by 60--90\%
+    \item Traces use about 19\% more memory
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[c]{Evaluation: Security}{}
-
-\end{frame}
-
-\begin{frame}[c]{Adoption Barriers}{}
-
-\end{frame}
-
-\begin{frame}[c]{Comparison with Related Work}{}
-
+  \begin{itemize}
+    \item Used the RIPE benchmark to evaluate effectiveness
+    \begin{itemize}
+      \item 850 memory corruption / code reuse exploits
+      \item The authors only managed to make 82 of these work
+      \item Needed to disable ASLR and enable executable stack
+    \end{itemize}
+    \vfill
+    \item Griffin was able to detect and stop all 82 exploits
+    \begin{itemize}
+      \item Coarse-grained and combination policy were equally effective
+      \item Authors acknowledge that this is weak evidence
+      \item Does not mean Griffin can stop every CFI attack
+    \end{itemize}
+  \end{itemize}
 \end{frame}
 
 \section{Discussion}
 
-\begin{frame}[c]{Alternative Hardware Tracing Solutions}{}
+\begin{frame}[c]{Adoption Barriers}{}
+  {\bf Performance Overhead}
+  \begin{itemize}
+    \item Performance overhead is impractical for many use cases
+    \item Significant memory overhead (e.g.~$2\times$ code pages for coarse-grained)
+    \item Is the decreased performance over static solutions justified?
+  \end{itemize}
 
+  \vfill
+  {\bf Incompatibilities with JIT Engines}
+  \begin{itemize}
+    \item The need to modify JIT engines for Griffin-compatibility is unrealistic
+  \end{itemize}
+
+  \vfill
+  {\bf Other Limitations}
+  \begin{itemize}
+    \item Modifications to the scheduler are required to save per-thread information\\on context switches
+    \item Griffin runs in ring 0, assumes a trusted kernel
+  \end{itemize}
 \end{frame}
+
+\begin{frame}[c]{A Possible Attack}{}
+  \begin{itemize}
+    \item Something I came up with while reading about Griffin's policy switching strategy
+
+    \vfill
+    \item A quick recap:
+    \begin{itemize}
+      \item Griffin can switch to a coarser-grained policy when there are lots of\\outstanding trace buffers
+      \item This serves as a proxy for the amount of performance bottlenecking
+      \item Switching to a coarse-grained policy is less secure, but more performant
+    \end{itemize}
+
+    \vfill
+    \item The attacker just needs to make the target do a lot of work very quickly
+    \begin{itemize}
+      \item This is possible, since we assume the attacker can provide input to the target
+      \item E.g.~modify scheduling priority, flood I/O bound program with small inputs
+      \item This can force Griffin to switch to a more insecure policy
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+%\begin{frame}[c]{Comparison with Related Work}{}
+%
+%\end{frame}
+%
+%\begin{frame}[c]{Alternative Hardware Tracing Solutions}{}
+%
+%\end{frame}
 
 \begin{frame}[c]{Integration with eBPF?}{}
 
 \end{frame}
 
 \begin{frame}[c]{Discussion Questions}{}
+  \begin{enumerate}
+    \item Should we be scared of code reuse attacks? Does their existence warrant the adoption of tools like Griffin?
 
+    \vfill
+    \item Do you think the existence of Spectre variant 2 renders CFI mechanisms pointless? Why or why not?
+
+    \vfill
+    \item Can you think of a way to design a system like Griffin without the need to trust the kernel?
+  \end{enumerate}
 \end{frame}
 
 \appendix
