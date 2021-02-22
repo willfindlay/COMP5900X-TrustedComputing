@@ -843,7 +843,7 @@
     \end{itemize}
 
     \vfill
-    \item The attacker just needs to make the target do a lot of work very quickly
+    \item The attacker just needs to make the target run a lot of instructions quickly
     \begin{itemize}
       \item This is possible, since we assume the attacker can provide input to the target
       \item E.g.~modify scheduling priority, flood I/O bound program with small inputs
@@ -861,18 +861,41 @@
 %\end{frame}
 
 \begin{frame}[c]{Integration with eBPF?}{}
+  \begin{itemize}
+    \item eBPF is an observability framework for the Linux kernel
+    \begin{itemize}
+      \item Event-based tracing for userspace and kernelspace
+      \item Integration with perf events subsystem
+      \item Already support for some hardware-backed events, such as PMU counters
+    \end{itemize}
 
+    \vfill
+    \item eBPF doesn't support Intel PT (yet)
+    \begin{itemize}
+      \item But adding support wouldn't be difficult
+      \item Would just need a kernel helper to access the trace packets
+    \end{itemize}
+
+    \vfill
+    \item Key advantage over using a kernel patch/module (Griffin style)
+    \begin{itemize}
+      \item Production safety
+      \item Aggregate events in-kernel then hand off to userspace
+      \item Easy integration with other userspace/kernelspace events
+      \item System calls, function calls, CPU run queue length, etc.
+    \end{itemize}
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[c]{Discussion Questions}{}
   \begin{enumerate}
-    \item Should we be scared of code reuse attacks? Does their existence warrant the adoption of tools like Griffin?
+    \item Static CFI mechanisms like compile-time instrumentation can outperform Griffin, but often at the cost of flexibility. Do you think the flexibility argument justifies Griffin's adoption, despite performance concerns? Why or why not?
 
     \vfill
-    \item Do you think the existence of Spectre variant 2 renders CFI mechanisms pointless? Why or why not?
+    \item Do you think the existence of Spectre variant 2 renders CFI mechanisms like Griffin pointless? Why or why not? (Recall: Spectre variant 2 involves executing Spectre gadgets via transient instructions.)
 
     \vfill
-    \item Can you think of a way to design a system like Griffin without the need to trust the kernel?
+    \item Griffin's current threat model requires complete trust in the operating system kernel. Do you think this is justifiable? Would it be feasible to design such a system without this assumption?
   \end{enumerate}
 \end{frame}
 
