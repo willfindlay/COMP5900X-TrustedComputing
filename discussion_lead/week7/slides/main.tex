@@ -180,6 +180,7 @@
   {\bf Title}
   \begin{itemize}
     \item \enquote{GRIFFIN\@: Guarding Control Flows Using Intel Processor Trace}
+    \item New online CFI mechanism based on Intel Processor Trace
   \end{itemize}
 
   \vfill
@@ -201,21 +202,25 @@
 \begin{frame}[c]{Goals}{}
   {\bf Problem Statement}
   \begin{itemize}
-    \item Defenders can use CFI defences to mitigate code reuse attacks
-    \item Most existing CFI defences are software-only
+    \item Attackers can abuse memory corruption vulnerabilities to mount code reuse attacks
     \begin{itemize}
-      \item Slow, inflexible, or incomplete protection
+      \item Often bypassing existing defences, such as DEP
     \end{itemize}
-    \item Hardware-backed CFI can offer better performance, security, flexibility
+    \item Defenders can use CFI defences to mitigate code reuse attacks
+    \begin{itemize}
+      \item Most existing CFI defences are software-only
+      \item Hardware-backed CFI can offer better performance, security, flexibility
+    \end{itemize}
   \end{itemize}
 
   \vfill
   {\bf Claims / Contributions}
   \begin{itemize}
-    \item Griffin $\rightarrow$ first online CFI implementation backed by Intel PT hardware
+    \item First CFI mechanism to use Intel PT
+    \begin{itemize}
+      \item Performance is comparable to the fastest software-only CFI, but with better security
+    \end{itemize}
     \item Multiple policy granularities for flexibility (performance vs security at runtime)
-    \item Performance is comparable to the fastest software-only CFI, but with better security
-    \item Support for JITed languages (dubious)
     \item Potential performance improvements re.~Intel PT design
   \end{itemize}
 \end{frame}
@@ -253,6 +258,30 @@
   \end{itemize}
 \end{frame}
 
+\begin{frame}[c]{Motivation}{}
+  \begin{itemize}
+    \item Existing CFI space is dominated by {\bf software-only solutions}
+    \begin{itemize}
+      \item These are generally either {\bf very slow} or {\bf very inflexible}
+    \end{itemize}
+
+    \vfill
+    \item Hardware-backed CFI hasn't been explored as much
+    \begin{itemize}
+      \item Existing proposals incur {\bf prohibitive overhead} or offer {\bf incomplete protection}
+      \item There is room in the literature to explore newer and more effective hardware-backed solutions
+    \end{itemize}
+
+    \vfill
+    \item Intel Processor Trace (PT) presents an opportunity to revisit hardware-backed CFI
+    \begin{itemize}
+      \item Very performant (only 5\% base overhead)
+      \item Typically used for {\bf offline debugging} and {\bf provenance}
+      \item Repurposing it for {\bf online} CFI requires some extra work (Griffin)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
 \section{Background}
 
 \begin{frame}[c]{Memory Corruption / Code Reuse Attacks}{}
@@ -278,7 +307,7 @@
 \begin{itemize}
   \item Identify correct code paths for an application $\rightarrow$ control flow graph (CFG)
   \item Enforce correct code paths at runtime (i.e.~they must follow the CFG)
-  \item Control flow integrity can stop (most) code reuse attacks
+  \item Control flow integrity can stop (many) code reuse attacks
   \begin{itemize}
     \item Depends on sophistication of the attack, granularity of CFI policy
     \item It at least significantly raises the bar for attackers
@@ -313,7 +342,7 @@
   \vfill
   {\bf \red{Drawbacks}}
   \begin{itemize}
-    \item Bound to specific language
+    \item Bound to specific language, toolchain
     \item CFI enforcement is fixed at compile time (no flexibility)
   \end{itemize}
 \end{frame}
@@ -365,9 +394,9 @@
 
 \begin{frame}[c]{Hardware-Assisted CFI}{}
   \begin{itemize}
-    \item Use hardware assistance to overcome limitations of software-only technologies
+    \item CFI backed by some underlying hardware technology for tracing control flows
     \begin{itemize}
-      \item E.g.~Intel Branch Target Store (BTS), Last Branch Record (LBR), Performance Monitoring Unit (PMU)
+      \item E.g.~Intel Branch Target Store (BTS), Last Branch Record (LBR), Performance Monitoring Unit (PMU), Intel Processor Trace (PT)
     \end{itemize}
 
     \vfill
@@ -380,7 +409,7 @@
     \vfill
     \item Griffin explores a way to efficiently use a newer hardware technology for CFI
     \begin{itemize}
-      \item Get more complete protection without sacrificing performance
+      \item Get more complete protection without sacrificing performance, flexibility
       \item Relies on performance optimizations made possible by Intel PT
     \end{itemize}
   \end{itemize}
@@ -388,7 +417,7 @@
 
 \begin{frame}[c]{Intel Processor Trace: Overview}{}
   \begin{itemize}
-    \item A new hardware-supported control flow tracing feature in Intel CPUs
+    \item A new hardware tracing feature supported by all modern Intel CPUs
 
     \vfill
     \item Originally designed for \textbf{offline debugging}
@@ -465,8 +494,12 @@
     \item Hardware-assisted CFI using Intel PT
     \begin{itemize}
       \item Trace control flow at runtime using Intel PT and compare it to some policy
-      \item Griffin takes PT traces in physical memory + program binary as input
     \end{itemize}
+  \end{itemize}
+
+  \vfill
+  \begin{itemize}
+    \item Griffin takes PT traces in physical memory + program binary as input
   \end{itemize}
 
   \vfill
@@ -518,7 +551,7 @@
   \begin{itemize}
     \item Coarse-grained policy deals only in {\bf target addresses for indirect calls}
     \begin{itemize}
-      \item This means no need to reconstruct control flow at all
+      \item This means no need to reconstruct control flow at all (target addresses are just given directly in TIP packets)
       \item Simply mark an indirect target as allowed or not allowed
       \item High performance, lower security
     \end{itemize}
@@ -555,7 +588,7 @@
     \item Instead of policy pages, store a {\bf policy matrix}
     \begin{itemize}
       \item An $M \times N$ sparse matrix that maps sources to targets
-      \item Matrix is stored at a constant offset in userspace
+      \item Matrix is located at a constant, pre-determined location in userspace
     \end{itemize}
 
     \vfill
@@ -599,8 +632,8 @@
     \item Griffin stores 8 {\bf basic block pointer pages} per code page
     \begin{itemize}
       \item Pointer pages are at a fixed offset to code pages, just like policy pages
+      \item These pages store pointers into a heap-allocated data structure
       \item Worker threads use compare-and-swap when writing to pointer pages
-      \item Each pointer page stores a pointer to a heap-allocated structure
     \end{itemize}
 
     \vfill
@@ -610,6 +643,13 @@
       \item Source and destination addresses for lookup on indirect branching
     \end{enumerate}
   \end{itemize}
+\end{frame}
+
+\begin{frame}[c]{Optimization: Caching Disassembly}{}
+  \begin{center}
+    \color{black}
+    \includegraphics[width=1\columnwidth]{figs/matrix.pdf}
+  \end{center}
 \end{frame}
 
 \begin{frame}[c]{P3: Stateful Policy}{}
@@ -636,7 +676,6 @@
       \includegraphics[width=1\columnwidth]{figs/stateful_policy.pdf}
     \end{column}
   \end{columns}
-
 \end{frame}
 
 \begin{frame}[c]{Problem: Sequential Reconstruction}{}
@@ -733,30 +772,49 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Evaluation: Performance Overhead}{}
-  {\bf SPEC CPU 2006 Results}
+\begin{frame}[c]{SPEC CPU 2006 Results}{}
   \begin{itemize}
-    \item Average slowdown under combination policy is about 9.5\%
+    \item Average slowdowns:
     \begin{itemize}
-      \item But the worst-case overheads exceed 30\%
+      \item Coarse-grained: 5.6\% (Intel PT alone is 4.7\%)
+      \item Fine-grained: 8.3\%
+      \item Combination: 9.5\%
     \end{itemize}
+
+    \vfill
+    \item Worst-case overheads exceed 30\% (approaching impractical)
+
+    \vfill
     \item Griffin is outperformed by some existing systems
     \begin{itemize}
-      \item But the authors argue these systems offer incomplete protection
+      \item Some offer incomplete protection
+      \item Others lack flexibility
     \end{itemize}
-    \item Griffin compares favourably with other shadow stack mechanisms
+
+    \vfill
+    \item Memory overhead is quite significant
+    \begin{itemize}
+      \item Hundreds of megabytes for complex applications
+      \item Tens of megabytes for simple ones
+    \end{itemize}
   \end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Evaluation: Performance Overhead}{}
-  {\bf Real-World Application Results}
+\begin{frame}[c]{Real-World Application Results}{}
   \begin{itemize}
     \item Performance impact on real-world applications is more modest
     \begin{itemize}
       \item About 12\% in the worst-case (Firefox)
       \item Negligible for vsftpd, exim, and Nginx
     \end{itemize}
-    \item CPU contention under high workloads is a significant bottleneck
+
+    \vfill
+    \item Reduction of worker threads has significant impact
+    \begin{itemize}
+      \item But the impact backs off significantly under larger work loads that slow the application down
+    \end{itemize}
+
+    \vfill
     \item I/O bound applications perform better under Griffin
     \begin{itemize}
       \item Many practical use cases for CFI are I/O bound applications
@@ -809,11 +867,11 @@
 \section{Discussion}
 
 \begin{frame}[c]{Adoption Barriers}{}
-  {\bf Performance Overhead}
+  {\bf Performance / Memory Overhead}
   \begin{itemize}
-    \item Performance overhead is impractical for many use cases
-    \item Significant memory overhead (e.g.~$2\times$ code pages for coarse-grained)
-    \item Is the decreased performance over static solutions justified?
+    \item Would certainly be prohibitive in embedded systems
+    \item Might be prohibitive for complex server workloads involving multiple concurrent processes
+    \item Does increased flexibility justify extra memory/performance overhead over static solutions?
   \end{itemize}
 
   \vfill
@@ -866,7 +924,7 @@
     \begin{itemize}
       \item Event-based tracing for userspace and kernelspace
       \item Integration with perf events subsystem
-      \item Already support for some hardware-backed events, such as PMU counters
+      \item Already support for some hardware-backed metrics, such as PMU counters
     \end{itemize}
 
     \vfill
@@ -882,7 +940,7 @@
       \item Production safety
       \item Aggregate events in-kernel then hand off to userspace
       \item Easy integration with other userspace/kernelspace events
-      \item System calls, function calls, CPU run queue length, etc.
+      \item System calls, function calls, scheduler run queue length, etc.
     \end{itemize}
   \end{itemize}
 \end{frame}
