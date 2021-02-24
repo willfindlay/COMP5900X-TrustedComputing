@@ -392,28 +392,28 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Hardware-Assisted CFI}{}
-  \begin{itemize}
-    \item CFI backed by some underlying hardware technology for tracing control flows
-    \begin{itemize}
-      \item E.g.~Intel Branch Target Store (BTS), Last Branch Record (LBR), Performance Monitoring Unit (PMU), Intel Processor Trace (PT)
-    \end{itemize}
-
-    \vfill
-    \item In general, existing implementations either:
-    \begin{itemize}
-      \item Do not provide complete protection (e.g.~too coarse-grained)
-      \item Incur unacceptable overhead (e.g.~too fine-grained)
-    \end{itemize}
-
-    \vfill
-    \item Griffin explores a way to efficiently use a newer hardware technology for CFI
-    \begin{itemize}
-      \item Get more complete protection without sacrificing performance, flexibility
-      \item Relies on performance optimizations made possible by Intel PT
-    \end{itemize}
-  \end{itemize}
-\end{frame}
+%\begin{frame}[c]{Hardware-Assisted CFI}{}
+%  \begin{itemize}
+%    \item CFI backed by some underlying hardware technology for tracing control flows
+%    \begin{itemize}
+%      \item E.g.~Intel Branch Target Store (BTS), Last Branch Record (LBR), Performance Monitoring Unit (PMU), Intel Processor Trace (PT)
+%    \end{itemize}
+%
+%    \vfill
+%    \item In general, existing implementations either:
+%    \begin{itemize}
+%      \item Do not provide complete protection (e.g.~too coarse-grained)
+%      \item Incur unacceptable overhead (e.g.~too fine-grained)
+%    \end{itemize}
+%
+%    \vfill
+%    \item Griffin explores a way to efficiently use a newer hardware technology for CFI
+%    \begin{itemize}
+%      \item Get more complete protection without sacrificing performance, flexibility
+%      \item Relies on performance optimizations made possible by Intel PT
+%    \end{itemize}
+%  \end{itemize}
+%\end{frame}
 
 \begin{frame}[c]{Intel Processor Trace: Overview}{}
   \begin{itemize}
@@ -506,7 +506,7 @@
   \begin{itemize}
     \item Disassemble and divide program binary up into {\bf basic blocks}
     \begin{itemize}
-      \item A basic block is just a contiguous code region with no jumps, calls, or returns
+      \item A basic block is just a contiguous code region with no interior branches
     \end{itemize}
   \end{itemize}
 
@@ -723,7 +723,7 @@
     \item Problems arise when trying to support just-in-time compiled (JITed) applications
     \begin{itemize}
       \item Recall that this was one of Griffin's primary goals
-      \item Some JIT compilers include optimizations that break Griffin
+      \item Some JIT compilers include optimizations and security features that break Griffin
     \end{itemize}
 
     \vfill
@@ -959,7 +959,7 @@
 
 \appendix
 
-\section{Backup Slides}
+%\section{Backup Slides}
 
 \section{References}
 
