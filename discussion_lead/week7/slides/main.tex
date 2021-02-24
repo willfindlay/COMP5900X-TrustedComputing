@@ -218,7 +218,7 @@
   \begin{itemize}
     \item First CFI mechanism to use Intel PT
     \begin{itemize}
-      \item Performance is comparable to the fastest software-only CFI, but with better security
+      \item Performance is comparable to software CFI, but with better security and flexibility
     \end{itemize}
     \item Multiple policy granularities for flexibility (performance vs security at runtime)
     \item Potential performance improvements re.~Intel PT design
@@ -374,7 +374,6 @@
   \begin{itemize}
     \item Instrument the application at runtime and enforce at runtime
     \item Policy can be generated or manually crafted, changed at will
-    \item Griffin technically falls into this category, but uses hardware assistance
   \end{itemize}
 
   \vfill
@@ -392,28 +391,29 @@
   \end{itemize}
 \end{frame}
 
-%\begin{frame}[c]{Hardware-Assisted CFI}{}
-%  \begin{itemize}
-%    \item CFI backed by some underlying hardware technology for tracing control flows
-%    \begin{itemize}
-%      \item E.g.~Intel Branch Target Store (BTS), Last Branch Record (LBR), Performance Monitoring Unit (PMU), Intel Processor Trace (PT)
-%    \end{itemize}
-%
-%    \vfill
-%    \item In general, existing implementations either:
-%    \begin{itemize}
-%      \item Do not provide complete protection (e.g.~too coarse-grained)
-%      \item Incur unacceptable overhead (e.g.~too fine-grained)
-%    \end{itemize}
-%
-%    \vfill
-%    \item Griffin explores a way to efficiently use a newer hardware technology for CFI
-%    \begin{itemize}
-%      \item Get more complete protection without sacrificing performance, flexibility
-%      \item Relies on performance optimizations made possible by Intel PT
-%    \end{itemize}
-%  \end{itemize}
-%\end{frame}
+\begin{frame}[c]{Hardware-Assisted CFI}{}
+  \begin{itemize}
+    \item Instead of instrumenting the binary, use hardware-generated logs
+    \begin{itemize}
+      \item Avoids many of the limitations of software-only
+      \item E.g.~Intel Branch Target Store (BTS), Last Branch Record (LBR), Performance Monitoring Unit (PMU)
+    \end{itemize}
+
+    \vfill
+    \item In general, existing implementations either:
+    \begin{itemize}
+      \item Do not provide complete protection or;
+      \item Incur unacceptable overhead
+    \end{itemize}
+
+    \vfill
+    \item Griffin explores a way to efficiently use a newer hardware technology for CFI
+    \begin{itemize}
+      \item Get more complete protection without sacrificing performance, flexibility
+      \item Relies on performance optimizations made possible by Intel PT
+    \end{itemize}
+  \end{itemize}
+\end{frame}
 
 \begin{frame}[c]{Intel Processor Trace: Overview}{}
   \begin{itemize}

@@ -7,14 +7,13 @@
 - Today I'll be presenting the paper "Griffin: Guarding Control Flows Using Intel
   Processor Trace" which presents a new CFI mechanism based on Intel PT
 
-- The paper was a collaboration between three authors from Microsoft Research and
-  Pennsylvania State University
+- The paper was a collaboration between Xinyang Ge and Weidong Cui from Microsoft Research
+  and Trent Jaeger from Pennsylvania State University
 - The senior author, Trent Jaeger is quite well-known for his work in operating system
   security
 
-- The paper was published at Architectural Support for Programming Languages and Operating
-  System 2017, which is recognized as a flagship conference at the intersection between
-  hardware, programming language, and operating system design
+- The paper was published at ASPLOS 2017, which is recognized as a flagship conference at
+  the intersection between hardware, programming language, and operating system design
 
 # Goals (2)
 
@@ -22,7 +21,7 @@
   attackers abusing memory corruption vulnerabilities to subvert an application's control
   flow
 
-- CFI or control flow integrity is a common defence against such code reuse attacks
+- Control flow integrity or CFI is a common defence against such code reuse attacks
 
 - The vast majority of existing CFI defences are based in software but these are either
   inflexible or perform poorly in practice
@@ -34,8 +33,8 @@
   which is the first online CFI implementation backed by Intel Processor Trace hardware
   support
 
-- Griffin's performance is shown to be comparable to the fastest software-only CFI
-  solutions, but with better security
+- Thanks to its implementation, the authors argue that Griffin's performance is comparable
+  to software CFI mechanisms but with better security and flexibility
 
 - Griffin offers multiple policy granularities for flexibility, providing defenders with
   the ability to choose between performance and security at runtime
@@ -170,9 +169,6 @@
 
 - Control flow policy can be generated or manually crafted, and modified at will
 
-- Griffin technically falls into this category, but relies on hardware assistance for its
-  implementation
-
 - In terms of benefits, runtime instrumentation is far more flexible than the other two
   categories
 
@@ -187,10 +183,26 @@
 - Implementations that are not very slow tend to offer very limited protection in exchange
   for better performance
 
-- In a sense, you could say that Griffin's goal is to make runtime instrumentation more
-  efficient while retaining its benefits
+# Hardware-Assisted CFI (10)
 
-# Intel Processor Trace: Overview (10)
+- Unlike software-only CFI, hardware-assisted CFI can avoid instrumentation altogether by
+  using hardware-generated logs to verify control flow
+
+- This approach can avoid many of the limitations of software-only CFI
+
+- Some examples of underlying technologies include Intel's Branch Target Store, Last Branch Record,
+  the CPU's PMU, and Intel Processor Trace
+
+- However, existing hardware-based CFI implementations either don't provide complete
+  protection or incur unacceptable overhead
+
+- Griffin explores a way to efficiently use Intel Processor Trace for CFI, which can
+  achieve more complete protection without sacrificing performance or flexibility
+
+- To achieve these goals Griffin relies on performance optimizations that are made
+  possible by Intel PT
+
+# Intel Processor Trace: Overview (11)
 
 - Intel PT is a new hardware tracing feature supported all Intel CPUs manufactured since
   2013
@@ -211,7 +223,7 @@
 - These trace packets are stored in contiguous physical memory regions, which allows Intel
   PT to avoid the cost of address translation in the MMU
 
-# Intel Processor Trace: Trace Packets (11)
+# Intel Processor Trace: Trace Packets (12)
 
 - Griffin primarily uses six types of trace packets
 
@@ -233,7 +245,7 @@
   needs to infer them from walking the code within the region indicated by the PGE and PGD
   packets
 
-# Intel Processor Trace: Trace Packets (12)
+# Intel Processor Trace: Trace Packets (13)
 
 - Target Instruction Pointer packets indicate the target instruction pointer for an
   indirect branch, such as invoking a dynamic dispatch function
@@ -250,7 +262,7 @@
 - These packets can be used as a point of synchronization between multiple workers
   processing a trace
 
-# Design Overview (13)
+# Design Overview (14)
 
 - At its core, Griffin is a new hardware-assisted control flow integrity mechanism using
   Intel PT
@@ -275,7 +287,7 @@
 - The policy data for a given code page is stored at some fixed offset from the code page
   in the process' address space, so that it can be easily looked up in constant time
 
-# Design Overview (14)
+# Design Overview (15)
 
 - The majority of Griffin's overhead comes from disassembling binaries at runtime and
   processing trace logs
@@ -301,7 +313,7 @@
 - Higher thresholds imply worse performance but better security, while lower thresholds
   imply better performance but worse security
 
-# P1: Coarse-Grained Policy (15)
+# P1: Coarse-Grained Policy (16)
 
 - Griffin's coarse-grained policy is the simplest out of the four categories, as it's only
   concerned with valid or invalid target addresses for indirect calls
@@ -326,7 +338,7 @@
 - A value of 1 would mean that the call is allowed, while a value of 0 would mean that
   it's denied
 
-# P1: Coarse-Grained Policy (16)
+# P1: Coarse-Grained Policy (17)
 
 - This figure depicts the process of coarse-grained policy enforcement in Griffin
 
@@ -341,7 +353,7 @@
 - If the value in the policy page were a zero, the call would instead be classified as
   illegitimate
 
-# P2: Fine-Grained Policy (17)
+# P2: Fine-Grained Policy (18)
 
 - Griffin's fine-grained policy extends coarse-grained policy to include information about
   source addresses
@@ -368,7 +380,7 @@
 - This results in higher security but also much lower performance due to the overhead of
   reconstructing source control flow from the trace packets
 
-# Optimization: Parallelization (18)
+# Optimization: Parallelization (19)
 
 - Luckily, there are a few optimizations that can significantly improve the overhead of
   processing trace packets
@@ -387,7 +399,7 @@
 - Griffin can also back off the amount of active workers under heavy contention to ensure
   that it does not negatively impact scheduling
 
-# Optimization: Caching Disassembly (19)
+# Optimization: Caching Disassembly (20)
 
 - Another optimization comes from the observation that the same code blocks are often
   executed multiple times
@@ -414,7 +426,7 @@
 - They also cache source and destination addresses for indirect calls, allowing Griffin to
   easily query rows and columns in the policy matrix
 
-# Optimization: Caching Disassembly (20)
+# Optimization: Caching Disassembly (21)
 
 - This figure depicts the process in a bit more detail
 
@@ -428,7 +440,7 @@
 - In the event of a missing pointer, Griffin would simply populate the heap data structure
   before continuing
 
-# P3: Stateful Policy (21)
+# P3: Stateful Policy (22)
 
 - As an even more secure alternative to fine-grained policy, Griffin also offers stateful
   policy, which tracks the state of the call stack along with source and target addresses
@@ -439,7 +451,7 @@
 - Griffin's worker threads then output a list of call and return addresses while
   processing traces, which can be compared with a shadow stack policy
 
-# Problem: Sequential Reconstruction (22)
+# Problem: Sequential Reconstruction (23)
 
 - Unfortunately, another natural problem arises from this new policy category, since
   enforcing a shadow stack policy would require calls and returns to be recorded in order
@@ -453,7 +465,7 @@
   trace workers to finish, but the result is a policy that is even more secure than
   fine-grained policy
 
-# P4: Combination Policy (23)
+# P4: Combination Policy (24)
 
 - The final policy category in Griffin is called combination policy, which is
   a combination of stateful and fine-grained policy
@@ -467,7 +479,7 @@
 - Combination policy therefore allows Griffin to achieve slightly better performance on
   stateful policy without sacrificing much security
 
-# Problem: Support for JITed Languages (24)
+# Problem: Support for JITed Languages (25)
 
 - One of Griffin's primary selling points that is advertised in the paper is that it
   supports CFI for just-in-time compiled languages like Javascript
@@ -494,7 +506,7 @@
 - They try to wave it away, but I think this is a serious adoption barrier for JIT use
   cases
 
-# Evaluation: Performance Overhead (25)
+# Evaluation: Performance Overhead (26)
 
 - To evaluate Griffin's performance, the authors employ micro and macro benchmarks,
   testing its performance and memory overhead
@@ -513,7 +525,7 @@
   their modified version of Firefox, the Nginx webserver, the exim email server, and an
   FTP daemon
 
-# Evaluation: Performance Overhead (26)
+# Evaluation: Performance Overhead (27)
 
 - In the SPEC CPU benchmarks, the average slowdown for the coarse-grained policy was about 5.6%,
   which is roughly inline with the base Intel PT overhead, as expected
@@ -537,7 +549,7 @@
 - The results show hundreds of megabytes for complex applications and tens of megabytes
   for even simple ones
 
-# Evaluation: Performance Overhead (27)
+# Evaluation: Performance Overhead (28)
 
 - The real-world application benchmarks tell a slightly different story
 
@@ -554,7 +566,7 @@
 - This is quite convenient, since many of the applications that would benefit the most
   from CFI happen to be I/O bound, such as web servers and email clients
 
-# Optimizing Intel PT for Online CFI (28)
+# Optimizing Intel PT for Online CFI (29)
 
 - To further improve performance, the authors suggest an obvious design change to Intel PT
   to add source addresses to trace packets
@@ -573,7 +585,7 @@
 - Their results showed that performance improves by 60-90%, while the traces use
   approximately 19% more memory
 
-# Evaluation: Security (29)
+# Evaluation: Security (30)
 
 - For their security evaluation, the authors chose to employ the RIPE benchmark, which
   consists of a vulnerable application and a bank of 850 memory corruption and code reuse
@@ -590,7 +602,7 @@
   in the wild, and since none of these attacks would even have worked under ordinary
   conditions
 
-# Adoption Barriers (30)
+# Adoption Barriers (31)
 
 - I foresee a few major adoption barriers for Griffin, the most obvious of which is its
   performance and memory overhead
@@ -614,7 +626,7 @@
 - Griffin also runs in ring 0 and assumes a trusted kernel, which may not necessarily be
   a viable assumption for multi-tenant environments like the cloud
 
-# A Possible Attack (31)
+# A Possible Attack (32)
 
 - I was able to come up with a possible attack on Griffin while I was reading about its
   policy switching strategy
@@ -634,7 +646,7 @@
   trace buffers and force Griffin into a more insecure mode, which could permit further
   attacks
 
-# Integration with eBPF (32)
+# Integration with eBPF (33)
 
 - When I was reading about Intel PT, something I immediately thought about is the
   possibility for integrating it with Linux's eBPF subsystem
@@ -658,7 +670,7 @@
 - It also offers easy integration with other userspace and kernelspace events and metrics,
   such as system calls, function calls, or the scheduler's run queue length
 
-# Discussion Questions (33)
+# Discussion Questions (34)
 
 (Conclude, then present discussion questions)
 
@@ -673,15 +685,3 @@
 
 
 
-
-# Hardware-Assisted CFI (10)
-
-- Hardware-assisted CFI is backed by some underlying hardware technology for tracing control flows
-- Some examples of these hardware technologies include Intel's Branch Target Store, Last Branch Record,
-  the CPU's PMU, and Intel Processor Trace
-
-- In general, existing hardware-based CFI implementations either don't provide complete protection or incur unacceptable overhead
-
-- Griffin explores a way to efficiently use Intel Processor Trace for CFI, which can achieve more complete protection without
-  sacrificing performance or flexibility
-- To achieve these goals Griffin relies on performance optimizations that are made possible by Intel PT
