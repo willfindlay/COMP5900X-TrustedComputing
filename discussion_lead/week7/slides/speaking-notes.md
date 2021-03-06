@@ -149,7 +149,7 @@
 # Static Binary Instrumentation (8)
 
 - In static binary instrumentation, we use static analysis tools to generate a CFG for an
-  existing binary
+  existing binary and then binary re-writing for enforcement
 
 - This has similar properties to compile-time instrumentation, but requires no compiler
   support
@@ -673,15 +673,3 @@
 # Discussion Questions (34)
 
 (Conclude, then present discussion questions)
-
-
-
-
-
-
-
-
-
-
-
-
