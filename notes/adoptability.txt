@@ -1,0 +1,25 @@
+- Adoptability argument
+    - developer friendliness!!!
+
+- Doing packet decoding in userspace
+    - potentially vulnerable?
+    - kernelspace is better from a security perspective
+
+- Why hardware: lower layer advantage from Intel PT -- we can catch every single
+  instruction
+
+TODO: read about Intel MPX (and SGX2)
+
+The Three Adoptability Properties
+---------------------------------
+
+- Protection Scope
+
+- Performance
+    - Not just about how fast the code runs
+    - Overhead, context switching (I need to make a good performance argument for instrumenting the scheduler)
+
+- Backward compatibility
+    - Porting effort
+    - Source rewriting, developer annotation, rebuild, as is
+    - User experience / user diligence (how much effort/burden/difficulty on the user)
