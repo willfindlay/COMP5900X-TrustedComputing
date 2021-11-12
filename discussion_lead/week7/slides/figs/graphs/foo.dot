@@ -1,6 +1,0 @@
-digraph code {
-	graph [bgcolor=azure fontsize=8 fontname="Courier" splines="ortho"];
-	node [fillcolor=gray style=filled shape=box];
-	edge [arrowhead="normal"];
-	"0x00001040" [URL="entry0/0x00001040", fillcolor="#c19c00",color="#c19c00", fontname="Courier",label="  ;-- section..text:\l  ;-- _start:\l  ;-- rip:\l46: entry0 (int64_t arg3);\l; arg int64_t arg3 @ rdx\l0x00001040      endbr64                                                ; [14] -r-x section size 421 named .text\l0x00001044      xor ebp, ebp\l0x00001046      mov r9, rdx                                            ; arg3\l0x00001049      pop rsi\l0x0000104a      mov rdx, rsp\l0x0000104d      and rsp, 0xfffffffffffffff0\l0x00001051      push rax\l0x00001052      push rsp\l0x00001053      lea r8, [sym.__libc_csu_fini]                          ; 0x11e0\l0x0000105a      lea rcx, [sym.__libc_csu_init]                         ; 0x1170\l0x00001061      lea rdi, [main]                                        ; 0x1139\l0x00001068      call qword [reloc.__libc_start_main]                   ; [0x3fe0:8]=0\l"]
-}
